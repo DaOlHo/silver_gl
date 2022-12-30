@@ -20,22 +20,22 @@ impl View3DRenderPipeline {
         height: i32,
         lighting_pass_shader_program: ShaderProgram,
         blur_shader_program: ShaderProgram,
-    ) -> View3DRenderPipeline {
+    ) -> Result<View3DRenderPipeline, GlError> {
         // Create g_buffer for deferred shading
         let deffered_fb = Framebuffer::new(
             width,
             height,
             3,
             true
-        ).unwrap();
+        )?;
 
         // Create framebuffer with second colour attachment for lighting calculations and bloom
         let mut lighting_pass_fb = Framebuffer::new(
             width,
             height,
             2,
-            true
-        ).unwrap();
+            false
+        )?;
 
         // Create two framebuffers to calculate bloom's blur
         let ping_framebuffer = Framebuffer::new(
@@ -43,37 +43,39 @@ impl View3DRenderPipeline {
             height,
             1,
             false
-        ).unwrap();
+        )?;
         let pong_framebuffer = Framebuffer::new(
             width,
             height,
             1,
             false
-        ).unwrap();
+        )?;
 
         // Link all the framebuffers together
         lighting_pass_fb.link_to_fb(&deffered_fb);
         // The rest are linked in draw call
 
-        View3DRenderPipeline {
-            deffered_fb,
-            lighting_pass_fb,
-            lighting_pass_shader_program,
-            ping_framebuffer,
-            pong_framebuffer,
-            blur_shader_program,
-            ping_pong_hoz: true,
-            ping_pong_first_iter: true,
-            width,
-            height,
-        }
+        Ok(
+            View3DRenderPipeline {
+                deffered_fb,
+                lighting_pass_fb,
+                lighting_pass_shader_program,
+                ping_framebuffer,
+                pong_framebuffer,
+                blur_shader_program,
+                ping_pong_hoz: true,
+                ping_pong_first_iter: true,
+                width,
+                height,
+            }
+        )
     }
 }
 
 impl RenderPipeline for View3DRenderPipeline {
     fn bind(&self) {
         unsafe {
-            gl::Viewport(0, 0, self.width as i32, self.height as i32);
+            gl::Viewport(0, 0, self.width, self.height);
             self.deffered_fb.bind();
             gl::Clear(gl::DEPTH_BUFFER_BIT);
         }
@@ -120,7 +122,7 @@ impl RenderPipeline for View3DRenderPipeline {
     }
 
     fn get_height(&self) -> (i32, i32) {
-        return (self.width, self.height);
+        (self.width, self.height)
     }
 
     fn set_size(&mut self, width: i32, height: i32) -> Result<(), GlError> {
@@ -137,9 +139,9 @@ impl RenderPipeline for View3DRenderPipeline {
     }
 
     fn get_link(&self) -> Result<Vec<Rc<Texture>>, GlError> {
-        return Ok(
+        Ok(
             vec![self.lighting_pass_fb.get(0).unwrap(), self.ping_framebuffer.get(0).unwrap()]
-        );
+        )
     }
 
     fn link_to(&mut self, output: Vec<Rc<Texture>>) -> Result<(), GlError> {

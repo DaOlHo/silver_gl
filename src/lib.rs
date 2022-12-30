@@ -16,6 +16,7 @@ mod render_buffer;
 mod render_pipeline;
 mod scene;
 mod view_3d_scene;
+mod view_2d_render_pipeline;
 
 pub use shader_program::*;
 pub use camera::*;
@@ -35,13 +36,10 @@ pub use render_buffer::*;
 pub use render_pipeline::*;
 pub use scene::*;
 pub use view_3d_scene::*;
+pub use view_2d_render_pipeline::*;
 
 // TODO: IMMEDIATE NEXT STEPS:
-// TODO:    Remove any uneccesary shaders, optimizing and cleaning them up
-// TODO:    Find a way to include shader defaults in library
-// TODO:    Solve all warnings
-// TODO:    Optimize what you have here
-// TODO: Create forward rendering pipeline
+// TODO:    Create forward rendering pipeline
 // TODO: Create transform and position system
 // TODO:    Support both instanced and non instanced objects
 // TODO:        Both contain links to model that draws instanced objects and has the buffer data transforms (see if this has a performance impact for non-instanced draw objects)
