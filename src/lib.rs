@@ -53,4 +53,4 @@ pub use view_2d_render_pipeline::*;
 // TODO: Implement multisampling on all render pipelines (maybe make multisampled versions of them?)
 // TODO: Create test suite
 // TODO: Comments that use better-comments styles
-// TODO: Create documentation using rust's documentation thing
+// TODO: Create documentation using rust's documentation thing (Have GL errors section in docs as well as panics section)

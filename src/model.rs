@@ -2,6 +2,7 @@ use std::{path::Path, rc::Rc};
 use cgmath::{vec2, vec3, Matrix4};
 use super::{ShaderProgram, Mesh, Vertex, Texture, GlError};
 
+// TODO: Use multidraw to have one VAO and transform buffer per model, and therefore one draw call
 #[derive(Default)]
 pub struct Model {
     pub meshes: Vec<Mesh>,
@@ -109,5 +110,30 @@ impl Model {
         // Send owned RC to loaded textures, and reference to the actual mesh
         self.textures_loaded.push(texture);
         Ok(result)
+    }
+
+    // For transformation of the model, actual storage is in TBOs (optimization to hold actual storage here?)
+    pub fn push_transform(&mut self, data: Matrix4<f32>) {
+        for mesh in &mut self.meshes {
+            mesh.tbo.push(data);
+        }
+    }
+
+    pub fn remove_transform(&mut self, index: usize) {
+        for mesh in &mut self.meshes {
+            mesh.tbo.remove(index);
+        }
+    }
+
+    pub fn set_transform_index(&mut self, data: Matrix4<f32>, index: usize) {
+        for mesh in &mut self.meshes {
+            mesh.tbo.set_data_index(data, index);
+        }
+    }
+
+    pub fn set_transforms(&mut self, data: Vec<Matrix4<f32>>) {
+        for mesh in &mut self.meshes {
+            mesh.tbo.set_data_mut(data.clone());
+        }
     }
 }

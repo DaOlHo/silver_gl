@@ -17,22 +17,18 @@ impl<T> Buffer<T> {
         buffer
     }
 
-    pub fn send_data(&mut self, data: Vec<T>) {
-        self.data = data;
-
+    pub fn send_data(&self) {
         unsafe {
             gl::NamedBufferStorage(
                 self.id,
                 (self.data.len() * std::mem::size_of::<T>()) as isize,
                 self.data.as_ptr() as *const gl::types::GLvoid,
                 0 as gl::types::GLbitfield
-            )
+            );
         }
     }
 
-    pub fn send_data_mut(&mut self, data: Vec<T>) {
-        self.data = data;
-
+    pub fn send_data_mut(&self) {
         unsafe {
             gl::NamedBufferData(
                 self.id,
@@ -41,6 +37,53 @@ impl<T> Buffer<T> {
                 gl::DYNAMIC_DRAW
             );
         }
+    }
+
+    pub unsafe fn send_data_index(&self, index: usize) {
+        let size = std::mem::size_of::<T>();
+
+        unsafe {
+            gl::NamedBufferSubData(
+                self.id,
+                (index * size) as isize,
+                size as isize,
+                self.data.as_ptr().add(index * size) as *const gl::types::GLvoid
+            );
+        }
+    }
+
+    pub fn set_data(&mut self, data: Vec<T>) {
+        self.data = data;
+        self.send_data();
+    }
+
+    pub fn set_data_mut(&mut self, data: Vec<T>) {
+        self.data = data;
+        self.send_data_mut();
+    }
+
+    // Push and remove are expensive because resizing needs to occur.
+    // They also make the data mutable, so keep that in mind
+    pub fn push(&mut self, data: T) {
+        self.data.push(data);
+        self.send_data_mut();
+    }
+    
+    // Panics if index out of bounds
+    pub fn remove(&mut self, index: usize) {
+        self.data.remove(index);
+        self.send_data_mut();
+    }
+
+    // Cheaper since there is no resize, but requires mutability.
+    // Panics if out of bounds
+    pub fn set_data_index(&mut self, data: T, index: usize) {
+        self.data[index] = data;
+        unsafe { self.send_data_index(index) };
+    }
+
+    pub fn get_data(&self) -> &Vec<T> {
+        &self.data
     }
 
     // Unsafe functions designed to be called from VAO

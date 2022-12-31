@@ -30,7 +30,7 @@ impl Display for GlError {
                 write!(f, "Uniform block '{}' was not found in shader {}", ub_name, id)
             },
             GlError::FramebufferNotComplete(id) => {
-                write!(f, "Framebuffer '{}' is not complete!", id)
+                write!(f, "Framebuffer '{}' is not complete", id)
             },
             GlError::UniformBufferMissing => write!(f, "Uniform buffer is not present")
         }

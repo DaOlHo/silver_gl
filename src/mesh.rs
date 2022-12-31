@@ -59,14 +59,14 @@ impl Mesh {
         self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, tangent) as u32, gl::FLOAT);
         self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, bitangent) as u32, gl::FLOAT);
 
-        self.vbo.send_data(vertices);
-        self.ebo.send_data(indices);
+        self.vbo.set_data(vertices);
+        self.ebo.set_data(indices);
     }
 
     fn setup_transform_attribute(&mut self, model_transforms: Vec<Matrix4<f32>>) {
         self.vao.add_vertex_buffer(&mut self.tbo);
         self.vao.add_attrib_divisor(&mut self.tbo, 4);
-        self.tbo.send_data_mut(model_transforms);
+        self.tbo.set_data_mut(model_transforms);
     }
 
     pub fn calc_vertex_tangents(&mut self, vertices: &mut Vec<Vertex>, indices: &mut Vec<u32>) {
