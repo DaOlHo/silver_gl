@@ -1,72 +1,67 @@
+use crate::Buffer;
+
 pub struct VertexArray {
     id: u32,
-    index: u32
+    attrib_index: u32,
+    buffer_index: u32
 }
 
 impl VertexArray {
     pub fn new() -> VertexArray {
         let mut vert_array = VertexArray {
-            id: 0, index: 0
+            id: 0, attrib_index: 0, buffer_index: 0
         };
 
         unsafe {
-            gl::GenVertexArrays(1, &mut vert_array.id);
+            gl::CreateVertexArrays(1, &mut vert_array.id);
         }
 
         vert_array
     }
 
-    pub fn bind_array(&self) {
+    pub fn add_vertex_buffer<T>(&mut self, buffer: &mut Buffer<T>) {
         unsafe {
-            gl::BindVertexArray(self.id);
+            buffer.add_vertex_to_vertex_array(self.id, self.buffer_index);
+        }
+
+        self.buffer_index += 1;
+    }
+
+    pub fn set_element_buffer<T>(&mut self, buffer: &mut Buffer<T>) {
+        unsafe {
+            buffer.add_element_to_vertex_array(self.id);
         }
     }
 
-    pub fn add_attrib(&mut self, size: i32, stride: i32, pointer: *const gl::types::GLvoid) {
+    pub fn add_attrib<T>(&mut self, buffer: &mut Buffer<T>, size: i32, offset: u32, type_: gl::types::GLenum) {
         unsafe {
-            // Binding this each call is technically slower, but it's safer and only affects loading
-            gl::BindVertexArray(self.id);
-
-            gl::EnableVertexAttribArray(self.index);
-            gl::VertexAttribPointer(
-                self.index,
+            gl::EnableVertexArrayAttrib(self.id, self.attrib_index);
+            gl::VertexArrayAttribFormat(
+                self.id,
+                self.attrib_index,
                 size,
-                gl::FLOAT,
+                type_,
                 gl::FALSE,
-                stride,
-                pointer
+                offset
             );
 
-            gl::BindVertexArray(0);
+            buffer.bind_to_vao_attrib(self.id, self.attrib_index);
         }
 
-        self.index += 1;
+        self.attrib_index += 1;
     }
 
     // For adding things like mat4 (types that are larger than 4*f32s but are multiples of it)
-    pub fn add_attrib_divisor(&mut self, rows: i32) {
+    pub fn add_attrib_divisor<T>(&mut self, buffer: &mut Buffer<T>, rows: i32) {
         // Row size is constant in OpenGL
         let size_vec4 = 16;
 
+        for i in 0..rows {
+            self.add_attrib(buffer, 4, (i * size_vec4) as u32, gl::FLOAT);
+        }
+
         unsafe {
-            gl::BindVertexArray(self.id);
-
-            for i in 0..rows {
-                gl::EnableVertexAttribArray(self.index);
-                gl::VertexAttribPointer(
-                    self.index,
-                    4,
-                    gl::FLOAT,
-                    gl::FALSE,
-                    size_vec4 * rows,
-                    (i as i32 * size_vec4) as *const gl::types::GLvoid
-                );
-                gl::VertexAttribDivisor(self.index, 1);
-
-                self.index += 1;
-            }
-
-            gl::BindVertexArray(0);
+            buffer.set_divisor(self.id, 1);
         }
     }
 
@@ -83,10 +78,6 @@ impl VertexArray {
             );
             gl::BindVertexArray(0);
         }
-    }
-
-    pub fn unbind_all() {
-        unsafe { gl::BindVertexArray(0) }
     }
 }
 

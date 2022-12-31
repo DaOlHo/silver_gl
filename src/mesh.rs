@@ -50,21 +50,23 @@ impl Mesh {
     }
 
     fn setup_mesh(&mut self, vertices: Vec<Vertex>, indices: Vec<u32>) {
-        self.vbo.send_data_static(&self.vao, vertices, gl::ARRAY_BUFFER);
-        self.ebo.send_data_static(&self.vao, indices, gl::ELEMENT_ARRAY_BUFFER);
+        self.vao.add_vertex_buffer(&mut self.vbo);
+        self.vao.set_element_buffer(&mut self.ebo);
 
-        let stride = std::mem::size_of::<Vertex>() as gl::types::GLint;
+        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, position) as u32, gl::FLOAT);
+        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, normal) as u32, gl::FLOAT);
+        self.vao.add_attrib(&mut self.vbo, 2, offset_of!(Vertex, tex_coord) as u32, gl::FLOAT);
+        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, tangent) as u32, gl::FLOAT);
+        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, bitangent) as u32, gl::FLOAT);
 
-        self.vao.add_attrib(3, stride, offset_of!(Vertex, position) as *const gl::types::GLvoid);
-        self.vao.add_attrib(3, stride, offset_of!(Vertex, normal) as *const gl::types::GLvoid);
-        self.vao.add_attrib(2, stride, offset_of!(Vertex, tex_coord) as *const gl::types::GLvoid);
-        self.vao.add_attrib(3, stride, offset_of!(Vertex, tangent) as *const gl::types::GLvoid);
-        self.vao.add_attrib(3, stride, offset_of!(Vertex, bitangent) as *const gl::types::GLvoid);
+        self.vbo.send_data(vertices);
+        self.ebo.send_data(indices);
     }
 
     fn setup_transform_attribute(&mut self, model_transforms: Vec<Matrix4<f32>>) {
-        self.tbo.send_data_static(&self.vao, model_transforms, gl::ARRAY_BUFFER);
-        self.vao.add_attrib_divisor(4);
+        self.vao.add_vertex_buffer(&mut self.tbo);
+        self.vao.add_attrib_divisor(&mut self.tbo, 4);
+        self.tbo.send_data_mut(model_transforms);
     }
 
     pub fn calc_vertex_tangents(&mut self, vertices: &mut Vec<Vertex>, indices: &mut Vec<u32>) {

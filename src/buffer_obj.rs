@@ -1,39 +1,71 @@
-use super::VertexArray;
-
 pub struct Buffer<T> {
     id: u32,
-    data: Vec<T>
+    data: Vec<T>,
+    binding_index: u32
 }
 
 impl<T> Buffer<T> {
     pub fn new() -> Buffer<T> {
         let mut buffer = Buffer {
-            data: Vec::<T>::new(), id: 0
+            data: Vec::<T>::new(), id: 0, binding_index: 0
         };
 
         unsafe {
-            gl::GenBuffers(1, &mut buffer.id);
+            gl::CreateBuffers(1, &mut buffer.id);
         }
 
         buffer
     }
 
-    // VAO is needed as obj is part of it
-    pub fn send_data_static(&mut self, vao: &VertexArray, data: Vec<T>, target: gl::types::GLenum) {
-        vao.bind_array();
+    pub fn send_data(&mut self, data: Vec<T>) {
         self.data = data;
 
         unsafe {
-            gl::BindBuffer(target, self.id);
-            gl::BufferData(
-                target,
+            gl::NamedBufferStorage(
+                self.id,
                 (self.data.len() * std::mem::size_of::<T>()) as isize,
                 self.data.as_ptr() as *const gl::types::GLvoid,
-                gl::STATIC_DRAW
+                0 as gl::types::GLbitfield
+            )
+        }
+    }
+
+    pub fn send_data_mut(&mut self, data: Vec<T>) {
+        self.data = data;
+
+        unsafe {
+            gl::NamedBufferData(
+                self.id,
+                (self.data.len() * std::mem::size_of::<T>()) as isize,
+                self.data.as_ptr() as *const gl::types::GLvoid,
+                gl::DYNAMIC_DRAW
             );
         }
+    }
 
-        VertexArray::unbind_all();
+    // Unsafe functions designed to be called from VAO
+    pub unsafe fn add_vertex_to_vertex_array(&mut self, vao_id: u32, binding_index: u32) {
+        gl::VertexArrayVertexBuffer(
+            vao_id,
+            binding_index,
+            self.id,
+            0,
+            std::mem::size_of::<T>() as gl::types::GLint
+        );
+
+        self.binding_index = binding_index;
+    }
+
+    pub unsafe fn add_element_to_vertex_array(&mut self, vao_id: u32) {
+        gl::VertexArrayElementBuffer(vao_id, self.id);
+    }
+
+    pub unsafe fn bind_to_vao_attrib(&mut self, vao_id: u32, attrib_index: u32) {
+        gl::VertexArrayAttribBinding(vao_id, attrib_index, self.binding_index)
+    }
+
+    pub unsafe fn set_divisor(&mut self, vao_id: u32, divisor: u32) {
+        gl::VertexArrayBindingDivisor(vao_id, self.binding_index, divisor);
     }
 
     pub fn len(&self) -> usize {
