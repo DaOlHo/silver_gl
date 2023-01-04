@@ -38,15 +38,6 @@ pub use scene::*;
 pub use view_3d_scene::*;
 pub use view_2d_render_pipeline::*;
 
-// TODO: IMMEDIATE NEXT STEPS:
-// TODO:    Create transform and position system
-// TODO:        Support both instanced and non instanced objects
-// TODO:            Both contain links to model that draws instanced objects and has the buffer data transforms (see if this has a performance impact for non-instanced draw objects)
-// TODO:            Instanced draw objects link to model and essentially just hold transormation info and index that is then updated in the model, and then the model needs to draw
-// TODO:            Non-instanced draw objects link to model and have their own draw function, overwriting the buffer data transforms with one transform and drawing (this would need to be set every draw)
-// TODO:            This system should allow for one model and one shader system, while allowing for efficient instanced rendering and actual individual rendered objects, which allows transparency
-// TODO:            For this, keep a table of loaded models to add references, and create objects directly from model path
-// TODO:        Update transform function that takes the object's position and rotation and makes it a transform matrix
 // TODO: Used the gl::Named pattern in the rest of the lib, not just VAO and buffers
 // TODO: Create resource manager that handles loading textures and VAO/VBOs, the gives reference counted pointers to the resources
 // TODO:    Create game objects system that receives references to resources managed by the resource manager (engine specific thing?)

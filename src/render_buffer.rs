@@ -6,7 +6,7 @@ pub struct RenderBuffer {
 
 impl RenderBuffer {
     // Requires framebuffer to be bound
-    pub fn push_to_framebuffer(framebuffer: &mut Framebuffer) {
+    pub fn for_framebuffer(framebuffer: &mut Framebuffer) -> RenderBuffer {
         let mut renderbuffer = RenderBuffer {
             id: 0
         };
@@ -14,38 +14,34 @@ impl RenderBuffer {
         let (width, height) = framebuffer.get_size();
 
         unsafe {
-            gl::GenRenderbuffers(1, &mut renderbuffer.id);
-            gl::BindRenderbuffer(gl::RENDERBUFFER, renderbuffer.id);
-            
-            gl::RenderbufferStorage(
-                gl::RENDERBUFFER,
+            // Create renderbuffer
+            gl::CreateRenderbuffers(1, &mut renderbuffer.id);
+            gl::NamedRenderbufferStorage(
+                renderbuffer.id,
                 gl::DEPTH24_STENCIL8,
                 width,
                 height
             );
-            
-            gl::BindRenderbuffer(gl::RENDERBUFFER, 0);
 
-            gl::FramebufferRenderbuffer(
-                gl::FRAMEBUFFER,
+            // Bind to FB
+            gl::NamedFramebufferRenderbuffer(
+                framebuffer.get_id(),
                 gl::DEPTH_STENCIL_ATTACHMENT,
                 gl::RENDERBUFFER,
                 renderbuffer.id
             );
         }
 
-        framebuffer.render_buffer = Some(renderbuffer);
+        renderbuffer
     }
 
     pub unsafe fn resize(&self, width: i32, height: i32) {
-        gl::BindRenderbuffer(gl::RENDERBUFFER, self.id);
-        gl::RenderbufferStorage(
-            gl::RENDERBUFFER,
+        gl::NamedRenderbufferStorage(
+            self.id,
             gl::DEPTH24_STENCIL8,
             width,
             height
         );
-        gl::BindRenderbuffer(gl::RENDERBUFFER, 0);
     }
 }
 

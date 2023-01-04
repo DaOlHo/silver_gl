@@ -102,30 +102,23 @@ impl Texture {
         let (width, height) = framebuffer.get_size();
 
         unsafe {
-            gl::GenTextures(1, &mut texture.id);
-            gl::BindTexture(texture.target, texture.id);
-
             // Create empty texture
-            gl::TexImage2D(
-                texture.target,
-                0,
-                gl::RGBA16F as i32,
+            gl::CreateTextures(texture.target, 1, &mut texture.id);
+            gl::TextureStorage2D(
+                texture.id,
+                1,
+                gl::RGBA16F,
                 width,
-                height,
-                0,
-                gl::RGBA,
-                gl::UNSIGNED_BYTE,
-                std::ptr::null()
+                height
             );
 
             // Nearest just for simplicity
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
 
             // Bind to framebuffer
-            gl::BindTexture(texture.target, 0);
-            gl::FramebufferTexture(
-                gl::FRAMEBUFFER,
+            gl::NamedFramebufferTexture(
+                framebuffer.get_id(),
                 gl::COLOR_ATTACHMENT0 + num,
                 texture.id,
                 0
@@ -142,11 +135,11 @@ impl Texture {
         }
     }
 
-    // TODO: Make resize inline as well since it will play during animations of 3D scenes
     // Unsafe because you need to know what you are doing so that you can resize without a mutable borrow
     pub unsafe fn resize(&self, width: i32, height: i32) {
         gl::BindTexture(self.target, self.id);
         // Resizes texture on same ID
+        // TODO: something something tex storage?
         gl::TexImage2D(
             self.target,
             0,

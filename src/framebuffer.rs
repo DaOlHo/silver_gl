@@ -22,14 +22,14 @@ impl Framebuffer {
         let mut framebuffer = Framebuffer::new_default(width, height);
 
         unsafe {
-            gl::GenFramebuffers(1, &mut framebuffer.id);
+            gl::CreateFramebuffers(1, &mut framebuffer.id);
         }
             
         // Set up renderbuffer, all these assume framebuffer is bound
         framebuffer.bind();
         framebuffer.gen_textures(tex_num);
         if has_rb {
-            RenderBuffer::push_to_framebuffer(&mut framebuffer);
+            framebuffer.render_buffer = Some(RenderBuffer::for_framebuffer(&mut framebuffer));
         }
         framebuffer.check_status()?;
         Framebuffer::unbind();
@@ -72,7 +72,7 @@ impl Framebuffer {
 
     pub fn check_status(&self) -> Result<(), GlError> {
         unsafe {
-            if gl::CheckFramebufferStatus(gl::FRAMEBUFFER) == gl::FRAMEBUFFER_COMPLETE {
+            if gl::CheckNamedFramebufferStatus(self.id, gl::FRAMEBUFFER) == gl::FRAMEBUFFER_COMPLETE {
                 Ok(())
             } else {
                 Err(GlError::FramebufferNotComplete(self.id))
@@ -162,6 +162,10 @@ impl Framebuffer {
                 rbo.resize(width, height);
             }
         }
+    }
+
+    pub fn get_id(&self) -> u32 {
+        self.id
     }
 }
 
