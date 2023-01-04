@@ -1,10 +1,10 @@
 use std::rc::Rc;
 
 use cgmath::{Vector3, Vector2, Matrix4, vec3};
-use super::{Texture, Mesh, Vertex, ShaderProgram, GlError};
+use super::{Mesh, Texture, Model, Vertex, ShaderProgram, GlError};
 
 pub struct Skybox {
-    pub mesh: Mesh
+    pub model: Model
 }
 
 impl Skybox {
@@ -72,13 +72,11 @@ impl Skybox {
 
         let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
 
-        let mut mesh = Mesh::new(vertices, indices, model_transforms);
+        let mut model = Model::from_raw(vertices, indices, model_transforms);
+        model.meshes.push(Mesh::new(0, 36));
+        model.meshes[0].diffuse_textures.push(Rc::new(Texture::from_file_cubemap(faces)?));
 
-        mesh.diffuse_textures.push(Rc::new(Texture::from_file_cubemap(faces)?));
-
-        let skybox = Skybox { mesh };
-
-        Ok(skybox)
+        Ok(Skybox { model })
     }
 
     pub fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
@@ -87,7 +85,7 @@ impl Skybox {
             gl::DepthFunc(gl::LEQUAL);
 
             shader_program.use_program();
-            self.mesh.draw(shader_program)?;
+            self.model.draw(shader_program)?;
 
             gl::DepthFunc(gl::LESS);
         }

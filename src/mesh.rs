@@ -1,8 +1,7 @@
 use std::rc::Rc;
 
-use cgmath::{Vector3, Zero, Matrix4, vec2};
-use memoffset::offset_of;
-use super::{ShaderProgram, GlError, VertexArray, Buffer, Vertex, Texture};
+use cgmath::Vector3;
+use super::{ShaderProgram, GlError, Texture};
 
 // TODO: sort any meshes with alpha values and render them farthest to closest w/o depth buffer
 
@@ -15,16 +14,13 @@ pub struct Mesh {
     pub displacement_textures: Vec<Rc<Texture>>,
     pub shininess_textures: Vec<Rc<Texture>>,
     pub shininess: f32,
-    pub vao: VertexArray,
-    pub vbo: Buffer<Vertex>,
-    pub ebo: Buffer<u32>,
-    pub tbo: Buffer<Matrix4<f32>>
+    buffer_offset: usize,
+    buffer_count: i32
 }
 
 impl Mesh {
-    pub fn new(vertices: Vec<Vertex>, indices: Vec<u32>, model_transforms: Vec<Matrix4<f32>>) -> Mesh {
-        let mut mesh = Mesh {
-            // TODO: Use data types with less overhead, like array instead of Vec<> (though do research if indexing is really slower)
+    pub fn new(buffer_offset: usize, buffer_count: i32) -> Mesh {
+        Mesh {
             diffuse_textures: Vec::new(),
             diffuse: Vector3 { x: 0.0, y: 0.0, z: 0.0},
             specular_textures: Vec::new(),
@@ -33,101 +29,12 @@ impl Mesh {
             displacement_textures: Vec::new(),
             shininess_textures: Vec::new(),
             shininess: 0.0,
-            vao: VertexArray::new(),
-            vbo: Buffer::new(),
-            ebo: Buffer::new(),
-            tbo: Buffer::new()
-        };
-
-        // Move data to mutable variable
-        let (mut vertices, mut indices) = (vertices, indices);
-
-        mesh.calc_vertex_tangents(&mut vertices, &mut indices); // Operates on data before it's sent to buffers
-        mesh.setup_mesh(vertices, indices);
-        mesh.setup_transform_attribute(model_transforms);
-
-        mesh
-    }
-
-    fn setup_mesh(&mut self, vertices: Vec<Vertex>, indices: Vec<u32>) {
-        self.vao.add_vertex_buffer(&mut self.vbo);
-        self.vao.set_element_buffer(&mut self.ebo);
-
-        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, position) as u32, gl::FLOAT);
-        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, normal) as u32, gl::FLOAT);
-        self.vao.add_attrib(&mut self.vbo, 2, offset_of!(Vertex, tex_coord) as u32, gl::FLOAT);
-        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, tangent) as u32, gl::FLOAT);
-        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, bitangent) as u32, gl::FLOAT);
-
-        self.vbo.set_data(vertices);
-        self.ebo.set_data(indices);
-    }
-
-    fn setup_transform_attribute(&mut self, model_transforms: Vec<Matrix4<f32>>) {
-        self.vao.add_vertex_buffer(&mut self.tbo);
-        self.vao.add_attrib_divisor(&mut self.tbo, 4);
-        self.tbo.set_data_mut(model_transforms);
-    }
-
-    pub fn calc_vertex_tangents(&mut self, vertices: &mut Vec<Vertex>, indices: &mut Vec<u32>) {
-        for i in 0..(indices.len() / 3) {
-            let index = i * 3;
-
-            let index1 = indices[index] as usize;
-            let index2 = indices[index + 1] as usize;
-            let index3 = indices[index + 2] as usize;
-
-            // Get positions for the vertices that make up the triangle
-            let pos1 = vertices[index1].position;
-            let pos2 = vertices[index2].position;
-            let pos3 = vertices[index3].position;
-
-            // Get corresponding texture coordinates
-            let uv1 = vertices[index1].tex_coord;
-            let uv2 = vertices[index2].tex_coord;
-            let uv3 = vertices[index3].tex_coord;
-
-            // Calculate deltas
-            let edge1 = pos2 - pos1;
-            let edge2 = pos3 - pos1;
-            let mut delta_uv1 = uv2 - uv1;
-            let mut delta_uv2 = uv3 - uv1;
-
-            // Slight correction for angles to be more accurate
-            let dir_correction: bool = (delta_uv2.x * delta_uv1.y - delta_uv2.y * delta_uv1.x) < 0.0;
-            let dir_correction: f32 = if dir_correction { -1.0 } else { 1.0 };
-
-            if delta_uv1.x * delta_uv2.y == delta_uv1.y * delta_uv2.x {
-                delta_uv1 = vec2(0.0, 1.0);
-                delta_uv2 = vec2(1.0, 0.0);
-            }
-
-            // Create tangent and bitangent vectors
-            let mut tangent: Vector3<f32> = Vector3::zero();
-            let mut bitangent: Vector3<f32> = Vector3::zero();
-
-            // Calculate tangent vector
-            tangent.x = dir_correction * (edge2.x * delta_uv1.y - edge1.x * delta_uv2.y);
-            tangent.y = dir_correction * (edge2.y * delta_uv1.y - edge1.y * delta_uv2.y);
-            tangent.z = dir_correction * (edge2.z * delta_uv1.y - edge1.z * delta_uv2.y);
-            
-            // Calculate bitangent vector
-            bitangent.x = dir_correction * ( - edge2.x * delta_uv1.x + edge1.x * delta_uv2.x);
-            bitangent.y = dir_correction * ( - edge2.y * delta_uv1.x + edge1.y * delta_uv2.x);
-            bitangent.z = dir_correction * ( - edge2.z * delta_uv1.x + edge1.z * delta_uv2.x);
-
-            // Set tangent vector to all vertices of the triangle
-            vertices[index1].tangent = tangent;
-            vertices[index2].tangent = tangent;
-            vertices[index3].tangent = tangent;            
-
-            vertices[index1].bitangent = bitangent;
-            vertices[index2].bitangent = bitangent;
-            vertices[index3].bitangent = bitangent;
+            buffer_offset,
+            buffer_count
         }
     }
 
-    unsafe fn set_textures(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
+    pub unsafe fn set_textures(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
         let mut i: i32 = 0;
         
         // Diffuse
@@ -182,16 +89,11 @@ impl Mesh {
         Ok(())
     }
 
-    // TODO: supposedly inline functions are faster, draw calls should probably all be like this?
-    pub fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
-        unsafe {
-            self.set_textures(shader_program)?;
-            self.vao.draw_elements(self.ebo.len() as i32, self.tbo.len() as i32);
+    pub fn get_offset(&self) -> usize {
+        self.buffer_offset
+    }
 
-            // Set back to defaults once configured
-            gl::ActiveTexture(gl::TEXTURE0);
-        }
-
-        Ok(())
+    pub fn get_count(&self) -> i32 {
+        self.buffer_count
     }
 }

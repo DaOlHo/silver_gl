@@ -7,7 +7,7 @@ mod quad;
 mod skybox;
 mod uniform_buffer;
 mod error;
-mod vert_array;
+mod vertex_array;
 mod buffer_obj;
 mod texture;
 mod vertex;
@@ -27,7 +27,7 @@ pub use quad::*;
 pub use skybox::*;
 pub use uniform_buffer::*;
 pub use error::*;
-pub use vert_array::*;
+pub use vertex_array::*;
 pub use buffer_obj::*;
 pub use texture::*;
 pub use vertex::*;
@@ -48,6 +48,9 @@ pub use view_2d_render_pipeline::*;
 // TODO:            For this, keep a table of loaded models to add references, and create objects directly from model path
 // TODO:        Update transform function that takes the object's position and rotation and makes it a transform matrix
 // TODO: Used the gl::Named pattern in the rest of the lib, not just VAO and buffers
+// TODO: Create resource manager that handles loading textures and VAO/VBOs, the gives reference counted pointers to the resources
+// TODO:    Create game objects system that receives references to resources managed by the resource manager (engine specific thing?)
+// TODO:    Game object per object in the engine, with the resource manager handling gameobjects -> transforms in model's tbo
 // TODO: Implement transparency (see if qsort is fast enough to do it each frame for each model of the scene?)
 // TODO: Add simple and efficient lighting to everything (do serious research when it comes to doing this on forward and deffered pipelines)
 // TODO: Implement multisampling on all render pipelines (maybe make multisampled versions of them?)

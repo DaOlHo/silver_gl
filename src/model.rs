@@ -1,52 +1,106 @@
 use std::{path::Path, rc::Rc};
-use cgmath::{vec2, vec3, Matrix4};
-use super::{ShaderProgram, Mesh, Vertex, Texture, GlError};
+use cgmath::{vec2, vec3, Matrix4, Vector3, Zero};
+use memoffset::offset_of;
+use crate::Buffer;
+
+use super::{ShaderProgram, Mesh, Vertex, Texture, GlError, VertexArray};
 
 // TODO: Use multidraw to have one VAO and transform buffer per model, and therefore one draw call
-#[derive(Default)]
 pub struct Model {
     pub meshes: Vec<Mesh>,
     // Stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
     // Reference counter to ensure textures are dropped properly.
-    pub textures_loaded: Vec<Rc<Texture>>,
-    directory: String
+    pub textures_loaded: Vec<Rc<Texture>>, // TODO: Will be moved out to resource manager
+    pub directory: String,
+    pub obj_path: String,
+    pub vao: VertexArray,
+    pub vbo: Buffer<Vertex>,
+    pub ebo: Buffer<u32>,
+    pub tbo: Buffer<Matrix4<f32>>
 }
 
 impl Model {
     pub fn new(path: &str, model_transforms: Vec<Matrix4<f32>>) -> Result<Model, GlError> {
-        let mut model = Model::default();
-        model.load_model(path, model_transforms)?;
+        let mut model = Model {
+            meshes: Vec::new(),
+            textures_loaded: Vec::new(),
+            directory: String::new(),
+            obj_path: String::new(),
+            vao: VertexArray::new(),
+            vbo: Buffer::new(),
+            ebo: Buffer::new(),
+            tbo: Buffer::new()
+        };
+
+        let (mut vertices, mut indices) = model.load_model(path)?;
+        model.calc_vertex_tangents(&mut vertices, &mut indices);
+        model.setup_model(vertices, indices);
+        model.setup_transform_attribute(model_transforms);
+
         Ok(model)
     }
 
+    pub fn from_raw(mut vertices: Vec<Vertex>, mut indices: Vec<u32>, model_transforms: Vec<Matrix4<f32>>) -> Model {
+        let mut model = Model {
+            meshes: Vec::new(),
+            textures_loaded: Vec::new(),
+            directory: String::new(),
+            obj_path: String::new(),
+            vao: VertexArray::new(),
+            vbo: Buffer::new(),
+            ebo: Buffer::new(),
+            tbo: Buffer::new()
+        };
+
+        model.calc_vertex_tangents(&mut vertices, &mut indices);
+        model.setup_model(vertices, indices);
+        model.setup_transform_attribute(model_transforms);
+
+        model
+    }
+
     pub fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
-        for mesh in &self.meshes {
-            mesh.draw(shader_program)?;
+        unsafe {
+            self.vao.bind();
+
+            for mesh in &self.meshes {
+                mesh.set_textures(shader_program)?;
+                self.vao.draw_elements_offset(
+                    mesh.get_count(),
+                    mesh.get_offset(),
+                    self.tbo.len() as i32
+                );
+    
+                // Set back to defaults once configured
+                gl::ActiveTexture(gl::TEXTURE0);
+            }
+
+            gl::BindVertexArray(0);
         }
 
         Ok(())
     }
 
-    pub fn load_model(&mut self, path: &str, model_transforms: Vec<Matrix4<f32>>) -> Result<(), GlError> {
+    pub fn load_model(&mut self, path: &str) -> Result<(Vec<Vertex>, Vec<u32>), GlError> {
         let path = Path::new(path);
+        self.obj_path = path.to_str().unwrap().to_owned();
         self.directory = path.parent().unwrap_or_else(|| Path::new("")).to_str().unwrap().into();
         
         let obj = tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS);
 
         let (models, materials) = obj?;
-        let materials = materials?; // Fix broken return type
+        let materials = materials?;
+
+        // Combine all meshes for optimized rendering
+        let mut vertices: Vec<Vertex> = Vec::new();
+        let mut indices: Vec<u32> = Vec::new();
+
         for model in models {
             let mesh = &model.mesh;
             let num_vertices = mesh.positions.len() / 3;
 
-            // Data to fill
-            let mut vertices: Vec<Vertex> = Vec::with_capacity(num_vertices);
-            let indices: Vec<u32> = mesh.indices.clone();
-
-            // TODO: with https://learnopengl.com/Advanced-OpenGL/Advanced-Data,
-            // TODO: it could be possible to store less data on the gpu using uneven data and verteces, as is default
+            // Push to model vertices
             let (p, n, t) = (&mesh.positions, &mesh.normals, &mesh.texcoords);
-
             for i in 0..num_vertices {
                 vertices.push(
                     Vertex {
@@ -58,8 +112,13 @@ impl Model {
                 )
             }
 
+            // Push to model indices while adjusting for offset
+            let offset = indices.len();
+            let mut adjusted_indices: Vec<u32> = mesh.indices.iter().map(|index| { index + offset as u32 }).collect();
+            indices.append(&mut adjusted_indices);
+
             // Process material
-            let mut gl_mesh = Mesh::new(vertices, indices, model_transforms.to_vec());
+            let mut gl_mesh = Mesh::new(offset, mesh.indices.len() as i32);
             if let Some(material_id) = mesh.material_id {
                 let material = &materials[material_id];
 
@@ -94,7 +153,85 @@ impl Model {
             self.meshes.push(gl_mesh);
         }
 
-        Ok(())
+        Ok((vertices, indices))
+    }
+
+    pub fn setup_model(&mut self, vertices: Vec<Vertex>, indices: Vec<u32>) {
+        self.vao.add_vertex_buffer(&mut self.vbo);
+        self.vao.set_element_buffer(&mut self.ebo);
+
+        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, position) as u32, gl::FLOAT);
+        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, normal) as u32, gl::FLOAT);
+        self.vao.add_attrib(&mut self.vbo, 2, offset_of!(Vertex, tex_coord) as u32, gl::FLOAT);
+        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, tangent) as u32, gl::FLOAT);
+        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, bitangent) as u32, gl::FLOAT);
+
+        self.vbo.set_data(vertices);
+        self.ebo.set_data(indices);
+    }
+    
+    pub fn setup_transform_attribute(&mut self, model_transforms: Vec<Matrix4<f32>>) {
+        self.vao.add_vertex_buffer(&mut self.tbo);
+        self.vao.add_attrib_divisor(&mut self.tbo, 4);
+        self.tbo.set_data_mut(model_transforms);
+    }
+
+    pub fn calc_vertex_tangents(&mut self, vertices: &mut Vec<Vertex>, indices: &mut Vec<u32>) {
+        for i in 0..(indices.len() / 3) {
+            let index = i * 3;
+
+            let index1 = indices[index] as usize;
+            let index2 = indices[index + 1] as usize;
+            let index3 = indices[index + 2] as usize;
+
+            // Get positions for the vertices that make up the triangle
+            let pos1 = vertices[index1].position;
+            let pos2 = vertices[index2].position;
+            let pos3 = vertices[index3].position;
+
+            // Get corresponding texture coordinates
+            let uv1 = vertices[index1].tex_coord;
+            let uv2 = vertices[index2].tex_coord;
+            let uv3 = vertices[index3].tex_coord;
+
+            // Calculate deltas
+            let edge1 = pos2 - pos1;
+            let edge2 = pos3 - pos1;
+            let mut delta_uv1 = uv2 - uv1;
+            let mut delta_uv2 = uv3 - uv1;
+
+            // Slight correction for angles to be more accurate
+            let dir_correction: bool = (delta_uv2.x * delta_uv1.y - delta_uv2.y * delta_uv1.x) < 0.0;
+            let dir_correction: f32 = if dir_correction { -1.0 } else { 1.0 };
+
+            if delta_uv1.x * delta_uv2.y == delta_uv1.y * delta_uv2.x {
+                delta_uv1 = vec2(0.0, 1.0);
+                delta_uv2 = vec2(1.0, 0.0);
+            }
+
+            // Create tangent and bitangent vectors
+            let mut tangent: Vector3<f32> = Vector3::zero();
+            let mut bitangent: Vector3<f32> = Vector3::zero();
+
+            // Calculate tangent vector
+            tangent.x = dir_correction * (edge2.x * delta_uv1.y - edge1.x * delta_uv2.y);
+            tangent.y = dir_correction * (edge2.y * delta_uv1.y - edge1.y * delta_uv2.y);
+            tangent.z = dir_correction * (edge2.z * delta_uv1.y - edge1.z * delta_uv2.y);
+            
+            // Calculate bitangent vector
+            bitangent.x = dir_correction * ( - edge2.x * delta_uv1.x + edge1.x * delta_uv2.x);
+            bitangent.y = dir_correction * ( - edge2.y * delta_uv1.x + edge1.y * delta_uv2.x);
+            bitangent.z = dir_correction * ( - edge2.z * delta_uv1.x + edge1.z * delta_uv2.x);
+
+            // Set tangent vector to all vertices of the triangle
+            vertices[index1].tangent = tangent;
+            vertices[index2].tangent = tangent;
+            vertices[index3].tangent = tangent;            
+
+            vertices[index1].bitangent = bitangent;
+            vertices[index2].bitangent = bitangent;
+            vertices[index3].bitangent = bitangent;
+        }
     }
 
     pub fn load_material_texture(&mut self, path: &str) -> Result<Rc<Texture>, GlError> {
@@ -110,30 +247,5 @@ impl Model {
         // Send owned RC to loaded textures, and reference to the actual mesh
         self.textures_loaded.push(texture);
         Ok(result)
-    }
-
-    // For transformation of the model, actual storage is in TBOs (optimization to hold actual storage here?)
-    pub fn push_transform(&mut self, data: Matrix4<f32>) {
-        for mesh in &mut self.meshes {
-            mesh.tbo.push(data);
-        }
-    }
-
-    pub fn remove_transform(&mut self, index: usize) {
-        for mesh in &mut self.meshes {
-            mesh.tbo.remove(index);
-        }
-    }
-
-    pub fn set_transform_index(&mut self, data: Matrix4<f32>, index: usize) {
-        for mesh in &mut self.meshes {
-            mesh.tbo.set_data_index(data, index);
-        }
-    }
-
-    pub fn set_transforms(&mut self, data: Vec<Matrix4<f32>>) {
-        for mesh in &mut self.meshes {
-            mesh.tbo.set_data_mut(data.clone());
-        }
     }
 }

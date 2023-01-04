@@ -1,12 +1,12 @@
 use std::rc::Rc;
 use cgmath::{Matrix4, vec3};
-use super::{GlError, Texture, RenderBuffer, Mesh, create_quad, ShaderProgram};
+use super::{GlError, Texture, RenderBuffer, Model, create_quad, ShaderProgram};
 
 pub struct Framebuffer {
     id: u32,
     textures: Vec<Rc<Texture>>,
     draw_buffers: Vec<gl::types::GLenum>,
-    quad: Mesh,
+    quad: Model,
     width: i32,
     height: i32,
     pub render_buffer: Option<RenderBuffer>
@@ -38,7 +38,7 @@ impl Framebuffer {
     }
 
     pub fn new_default(width: i32, height: i32) -> Framebuffer {
-        // Create quad mesh for framebuffer
+        // Create quad model for framebuffer
         let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
         let quad = create_quad(model_transforms);
 
@@ -92,7 +92,7 @@ impl Framebuffer {
 
     pub fn link_to(&mut self, output: Vec<Rc<Texture>>) {
         for texture in output {
-            self.quad.diffuse_textures.push(texture);
+            self.quad.meshes[0].diffuse_textures.push(texture);
         }
     }
 
@@ -104,11 +104,11 @@ impl Framebuffer {
     }
 
     pub fn link_push(&mut self, texture: Rc<Texture>) {
-        self.quad.diffuse_textures.push(texture);
+        self.quad.meshes[0].diffuse_textures.push(texture);
     }
 
     pub fn unlink(&mut self) {
-        self.quad.diffuse_textures.clear();
+        self.quad.meshes[0].diffuse_textures.clear();
     }
 
     // Get output texture at index

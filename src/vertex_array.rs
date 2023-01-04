@@ -65,6 +65,10 @@ impl VertexArray {
         }
     }
 
+    pub unsafe fn bind(&self) {
+        gl::BindVertexArray(self.id);
+    }
+
     // Get count and instance_count from in-built buffer objects
     pub fn draw_elements(&self, count: i32, instance_count: i32) {
         unsafe {
@@ -77,6 +81,19 @@ impl VertexArray {
                 instance_count
             );
             gl::BindVertexArray(0);
+        }
+    }
+
+    // Requires VAO to be bound already
+    pub fn draw_elements_offset(&self, count: i32, offset: usize, instance_count: i32) {
+        unsafe {
+            gl::DrawElementsInstanced(
+                gl::TRIANGLES,
+                count,
+                gl::UNSIGNED_INT,
+                std::ptr::null::<u32>().add(offset) as *const gl::types::GLvoid,
+                instance_count
+            );
         }
     }
 }
