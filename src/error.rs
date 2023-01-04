@@ -12,7 +12,9 @@ pub enum GlError{
     ObjLoadError(tobj::LoadError),
     UniformInvalidIndex(String, u32),
     FramebufferNotComplete(u32),
-    UniformBufferMissing
+    UniformBufferMissing,
+    CannotResize(u32),
+    IncorrectSize(String)
 }
 
 impl Display for GlError {
@@ -32,7 +34,9 @@ impl Display for GlError {
             GlError::FramebufferNotComplete(id) => {
                 write!(f, "Framebuffer '{}' is not complete", id)
             },
-            GlError::UniformBufferMissing => write!(f, "Uniform buffer is not present")
+            GlError::UniformBufferMissing => write!(f, "Uniform buffer is not present"),
+            GlError::CannotResize(id) => write!(f, "Cannot resize texture '{}'", id),
+            GlError::IncorrectSize(msg) => write!(f, "Icorrect size: {}", msg)
         }
     }
 }

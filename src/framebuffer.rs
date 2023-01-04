@@ -149,19 +149,21 @@ impl Framebuffer {
         return (self.width, self.height);
     }
 
-    pub fn set_size(&mut self, width: i32, height: i32) {
+    pub fn set_size(&mut self, width: i32, height: i32) -> Result<(), GlError> {
         self.width = width;
         self.height = height;
 
         unsafe {
             for texture in self.textures.iter() {
-                texture.resize(width, height);
+                texture.resize(width, height)?;
             }
 
             if let Some(rbo) = &self.render_buffer {
                 rbo.resize(width, height);
             }
         }
+
+        Ok(())
     }
 
     pub fn get_id(&self) -> u32 {

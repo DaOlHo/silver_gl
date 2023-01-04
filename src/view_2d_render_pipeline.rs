@@ -49,7 +49,7 @@ impl RenderPipeline for View2DRenderPipeline {
     fn set_size(&mut self, width: i32, height: i32) -> Result<(), GlError> {
         self.width = width;
         self.height = height;
-        self.intermediate_fb.set_size(width, height);
+        self.intermediate_fb.set_size(width, height)?;
 
         Ok(())
     }

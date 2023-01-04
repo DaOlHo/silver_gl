@@ -1,88 +1,108 @@
 use std::rc::Rc;
-use super::{GlError, Framebuffer};
-use image::DynamicImage::*;
+use super::{GlError, GlImage, Framebuffer};
 
 pub struct Texture {
     id: u32,
     target: gl::types::GLenum,
-    pub path: String
+    pub path: String,
+    can_resize: bool
 }
 
 impl Texture {
-    // Creates 2D texture applied to currently bound texture
-    pub unsafe fn from_file_to_bound(path: &str, target: gl::types::GLenum) -> Result<(), GlError> {
-        let img = image::io::Reader::open(path)?.decode()?;
-        let data = img.as_bytes();
-
-        // TODO: if there is an alpha, mark mesh as transparent
-        let (internal_format, data_format) = match img {
-            ImageLuma8(_) => (gl::RED, gl::RED),
-            ImageLumaA8(_) => (gl::RG, gl::RG),
-            ImageRgb8(_) => (gl::SRGB, gl::RGB),
-            ImageRgba8(_) => (gl::SRGB_ALPHA, gl::RGBA),
-            _ => (gl::SRGB, gl::RGB) // If nothing else, try default
-        };
-
-        unsafe {
-            gl::TexImage2D(
-                target,
-                0,
-                internal_format as i32,
-                img.width() as i32,
-                img.height() as i32,
-                0,
-                data_format,
-                gl::UNSIGNED_BYTE,
-                data.as_ptr() as *const gl::types::GLvoid
-            );
-        }
-
-        Ok(())
-    }
-
     pub fn from_file_2d(path: &str) -> Result<Texture, GlError> {
         let mut texture = Texture {
             id: 0,
             target: gl::TEXTURE_2D,
-            path: path.to_owned()
+            path: path.to_owned(),
+            can_resize: false
         };
+
+        let gl_image = GlImage::from_file(path)?;
     
         unsafe {
-            gl::GenTextures(1, &mut texture.id);
-            gl::BindTexture(texture.target, texture.id);
+            gl::CreateTextures(texture.target, 1, &mut texture.id);
             
-            Texture::from_file_to_bound(path, texture.target)?;
+            gl::TextureStorage2D(
+                texture.id,
+                1,
+                gl_image.internal_format,
+                gl_image.width,
+                gl_image.height
+            );
+
+            gl::TextureSubImage2D(
+                texture.id,
+                0,
+                0,
+                0,
+                gl_image.width,
+                gl_image.height,
+                gl_image.data_format,
+                gl::UNSIGNED_BYTE,
+                gl_image.bytes.as_ptr() as *const gl::types::GLvoid
+            );
             
-            gl::GenerateMipmap(texture.target);
-            gl::TexParameteri(texture.target, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
-            gl::TexParameteri(texture.target, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
-            gl::TexParameteri(texture.target, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
-            gl::TexParameteri(texture.target, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+            gl::GenerateTextureMipmap(texture.id);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
         }
 
         Ok(texture)
     }
 
     pub fn from_file_cubemap(faces: Vec<String>) -> Result<Texture, GlError> {
+        if faces.len() != 6 {
+            return Err(GlError::IncorrectSize(String::from("cubemap has less than 6 faces")));
+        }
+
         let mut texture = Texture {
             id: 0,
             target: gl::TEXTURE_CUBE_MAP,
-            path: "".to_owned()
+            path: faces[0].clone(), // Uses first texture as path
+            can_resize: false
         };
 
-        unsafe {
-            gl::GenTextures(1, &mut texture.id);
-            gl::BindTexture(texture.target, texture.id);
+        let mut face_imgs = Vec::new();
 
-            for (i, face) in faces.iter().enumerate() {
-                Texture::from_file_to_bound(face, gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32)?;
+        for face in faces {
+            face_imgs.push(GlImage::from_file(face.as_str())?);
+        }
+
+        unsafe {
+            gl::CreateTextures(texture.target, 1, &mut texture.id);
+
+            gl::TextureStorage2D(
+                texture.id,
+                1,
+                face_imgs[0].internal_format,
+                face_imgs[0].width,
+                face_imgs[0].height
+            );
+
+            for (i, face) in face_imgs.iter().enumerate() {
+                // Texture::load_file(face, gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32)?;
+                gl::TextureSubImage3D(
+                    texture.id,
+                    0,
+                    0,
+                    0,
+                    i as i32,
+                    face.width,
+                    face.height,
+                    1,
+                    face.data_format,
+                    gl::UNSIGNED_BYTE,
+                    face.bytes.as_ptr() as *const gl::types::GLvoid
+                );
             }
 
-            gl::TexParameteri(texture.target, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-            gl::TexParameteri(texture.target, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-            gl::TexParameteri(texture.target, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-            gl::TexParameteri(texture.target, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexParameteri(texture.target, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
         }
 
         Ok(texture)
@@ -94,7 +114,8 @@ impl Texture {
         let mut texture = Texture {
             id: 0,
             path: "".into(),
-            target: gl::TEXTURE_2D
+            target: gl::TEXTURE_2D,
+            can_resize: true
         };
 
         // Get number of new texture
@@ -103,14 +124,21 @@ impl Texture {
 
         unsafe {
             // Create empty texture
+            // Does not use DFA so that the texture can be resized
             gl::CreateTextures(texture.target, 1, &mut texture.id);
-            gl::TextureStorage2D(
-                texture.id,
-                1,
-                gl::RGBA16F,
+            gl::BindTexture(texture.target, texture.id);
+            gl::TexImage2D(
+                texture.target,
+                0,
+                gl::RGBA16F as i32,
                 width,
-                height
+                height,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                std::ptr::null()
             );
+            gl::BindTexture(texture.target, 0);
 
             // Nearest just for simplicity
             gl::TextureParameteri(texture.id, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
@@ -130,28 +158,33 @@ impl Texture {
 
     pub fn ready_texture(&self, num: u32) {
         unsafe {
-            gl::ActiveTexture(gl::TEXTURE0 + num);
-            gl::BindTexture(self.target, self.id);
+            gl::BindTextureUnit(num, self.id);
         }
     }
 
-    // Unsafe because you need to know what you are doing so that you can resize without a mutable borrow
-    pub unsafe fn resize(&self, width: i32, height: i32) {
-        gl::BindTexture(self.target, self.id);
-        // Resizes texture on same ID
-        // TODO: something something tex storage?
-        gl::TexImage2D(
-            self.target,
-            0,
-            gl::RGBA16F as i32,
-            width,
-            height,
-            0,
-            gl::RGBA,
-            gl::UNSIGNED_BYTE,
-            std::ptr::null()
-        );
-        gl::BindTexture(self.target, 0);
+    pub fn resize(&self, width: i32, height: i32) -> Result<(), GlError> {
+        if !self.can_resize {
+            return Err(GlError::CannotResize(self.id));
+        }
+
+        unsafe {
+            gl::BindTexture(self.target, self.id);
+            // Resizes texture on same ID
+            gl::TexImage2D(
+                self.target,
+                0,
+                gl::RGBA16F as i32,
+                width,
+                height,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                std::ptr::null()
+            );
+            gl::BindTexture(self.target, 0);
+        }
+
+        Ok(())
     }
 }
 

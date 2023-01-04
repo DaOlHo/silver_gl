@@ -17,6 +17,7 @@ mod render_pipeline;
 mod scene;
 mod view_3d_scene;
 mod view_2d_render_pipeline;
+mod gl_image;
 
 pub use shader_program::*;
 pub use camera::*;
@@ -37,6 +38,7 @@ pub use render_pipeline::*;
 pub use scene::*;
 pub use view_3d_scene::*;
 pub use view_2d_render_pipeline::*;
+pub use gl_image::*;
 
 // TODO: Used the gl::Named pattern in the rest of the lib, not just VAO and buffers
 // TODO: Create resource manager that handles loading textures and VAO/VBOs, the gives reference counted pointers to the resources

@@ -130,10 +130,10 @@ impl RenderPipeline for View3DRenderPipeline {
         self.height = height;
 
         // Resize FBs
-        self.deffered_fb.set_size(width, height);
-        self.lighting_pass_fb.set_size(width, height);
-        self.ping_framebuffer.set_size(width, height);
-        self.pong_framebuffer.set_size(width, height);
+        self.deffered_fb.set_size(width, height)?;
+        self.lighting_pass_fb.set_size(width, height)?;
+        self.ping_framebuffer.set_size(width, height)?;
+        self.pong_framebuffer.set_size(width, height)?;
 
         Ok(())
     }
