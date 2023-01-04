@@ -47,8 +47,7 @@ impl<T> Buffer<T> {
                 self.id,
                 (index * size) as isize,
                 size as isize,
-                // TODO: remove * size from below since it isn't needed
-                self.data.as_ptr().add(index * size) as *const gl::types::GLvoid
+                self.data.as_ptr().add(index) as *const gl::types::GLvoid
             );
         }
     }
