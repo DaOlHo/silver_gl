@@ -25,13 +25,10 @@ impl Framebuffer {
             gl::CreateFramebuffers(1, &mut framebuffer.id);
         }
         
-        // TODO: NO BINDS!
         // Set up renderbuffer, all these assume framebuffer is bound
-        // framebuffer.bind();
         framebuffer.gen_textures(tex_num);
         if has_rb { framebuffer.gen_render_buffer() };
         framebuffer.check_status()?;
-        // Framebuffer::unbind();
 
         Ok(framebuffer)
     }

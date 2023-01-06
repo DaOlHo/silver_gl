@@ -87,6 +87,7 @@ impl<T> Buffer<T> {
     }
 
     // Unsafe functions designed to be called from VAO
+    // These need to exist because the buffer handles its own binding_index
     pub unsafe fn add_vertex_to_vertex_array(&mut self, vao_id: u32, binding_index: u32) {
         gl::VertexArrayVertexBuffer(
             vao_id,
@@ -99,10 +100,6 @@ impl<T> Buffer<T> {
         self.binding_index = binding_index;
     }
 
-    pub unsafe fn add_element_to_vertex_array(&mut self, vao_id: u32) {
-        gl::VertexArrayElementBuffer(vao_id, self.id);
-    }
-
     pub unsafe fn bind_to_vao_attrib(&mut self, vao_id: u32, attrib_index: u32) {
         gl::VertexArrayAttribBinding(vao_id, attrib_index, self.binding_index)
     }
@@ -113,6 +110,10 @@ impl<T> Buffer<T> {
 
     pub fn len(&self) -> usize {
         self.data.len()
+    }
+
+    pub fn get_id(&self) -> u32 {
+        self.id
     }
 }
 

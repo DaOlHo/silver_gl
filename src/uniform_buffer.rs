@@ -40,6 +40,10 @@ impl UniformBuffer {
             gl::NamedBufferSubData(self.id, offset as isize, std::mem::size_of::<T>() as isize, data);
         }
     }
+
+    pub fn get_id(&self) -> u32 {
+        self.id
+    }
 }
 
 impl Drop for UniformBuffer {

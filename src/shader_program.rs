@@ -277,6 +277,10 @@ impl ShaderProgram {
 
         Ok(())
     }
+
+    pub fn get_id(&self) -> u32 {
+        self.id
+    }
 }
 
 impl Drop for ShaderProgram {

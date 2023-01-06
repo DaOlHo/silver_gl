@@ -29,7 +29,7 @@ impl VertexArray {
 
     pub fn set_element_buffer<T>(&mut self, buffer: &mut Buffer<T>) {
         unsafe {
-            buffer.add_element_to_vertex_array(self.id);
+            gl::VertexArrayElementBuffer(self.id, buffer.get_id());
         }
     }
 
@@ -95,6 +95,10 @@ impl VertexArray {
                 instance_count
             );
         }
+    }
+
+    pub fn get_id(&self) -> u32 {
+        self.id
     }
 }
 
