@@ -41,6 +41,8 @@ pub use view_2d_render_pipeline::*;
 pub use gl_image::*;
 
 // TODO: Used the gl::Named pattern in the rest of the lib, not just VAO and buffers
+// TODO: Combine entire model into one draw call
+// TODO: Add get_id function to all abstractions and simplify functions
 // TODO: Create resource manager that handles loading textures and VAO/VBOs, the gives reference counted pointers to the resources
 // TODO:    Create game objects system that receives references to resources managed by the resource manager (engine specific thing?)
 // TODO:    Game object per object in the engine, with the resource manager handling gameobjects -> transforms in model's tbo

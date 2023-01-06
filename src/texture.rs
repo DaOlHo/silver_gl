@@ -1,5 +1,4 @@
-use std::rc::Rc;
-use super::{GlError, GlImage, Framebuffer};
+use super::{GlError, GlImage};
 
 pub struct Texture {
     id: u32,
@@ -109,18 +108,13 @@ impl Texture {
     }
 
     // Doesn't need GlError since this only generates gl callback errors
-    // Assumes framebuffer is bound
-    pub fn for_framebuffer(framebuffer: &mut Framebuffer) -> (u32, Rc<Texture>) {
+    pub fn new_mut(width: i32, height: i32) -> Texture {
         let mut texture = Texture {
             id: 0,
             path: "".into(),
             target: gl::TEXTURE_2D,
             can_resize: true
         };
-
-        // Get number of new texture
-        let num: u32 = framebuffer.len() as u32;
-        let (width, height) = framebuffer.get_size();
 
         unsafe {
             // Create empty texture
@@ -143,17 +137,9 @@ impl Texture {
             // Nearest just for simplicity
             gl::TextureParameteri(texture.id, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
             gl::TextureParameteri(texture.id, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-
-            // Bind to framebuffer
-            gl::NamedFramebufferTexture(
-                framebuffer.get_id(),
-                gl::COLOR_ATTACHMENT0 + num,
-                texture.id,
-                0
-            );
         }
 
-        (gl::COLOR_ATTACHMENT0 + num, Rc::new(texture))
+        texture
     }
 
     pub fn ready_texture(&self, num: u32) {
@@ -162,7 +148,9 @@ impl Texture {
         }
     }
 
-    pub fn resize(&self, width: i32, height: i32) -> Result<(), GlError> {
+    // Unsafe because it doesn't need to be marked as mutable, which would interfere with RC
+    // TODO: CHANGE WHEN WRITING RESOURCE MANAGER!
+    pub unsafe fn resize(&self, width: i32, height: i32) -> Result<(), GlError> {
         if !self.can_resize {
             return Err(GlError::CannotResize(self.id));
         }
@@ -185,6 +173,10 @@ impl Texture {
         }
 
         Ok(())
+    }
+
+    pub fn get_id(&self) -> u32 {
+        self.id
     }
 }
 

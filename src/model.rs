@@ -5,7 +5,6 @@ use crate::Buffer;
 
 use super::{ShaderProgram, Mesh, Vertex, Texture, GlError, VertexArray};
 
-// TODO: Use multidraw to have one VAO and transform buffer per model, and therefore one draw call
 pub struct Model {
     pub meshes: Vec<Mesh>,
     // Stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
@@ -63,6 +62,7 @@ impl Model {
         unsafe {
             self.vao.bind();
 
+            // TODO: work on making this work with textures so there is one draw call
             for mesh in &self.meshes {
                 mesh.set_textures(shader_program)?;
                 self.vao.draw_elements_offset(

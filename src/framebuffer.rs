@@ -27,13 +27,11 @@ impl Framebuffer {
         
         // TODO: NO BINDS!
         // Set up renderbuffer, all these assume framebuffer is bound
-        framebuffer.bind();
+        // framebuffer.bind();
         framebuffer.gen_textures(tex_num);
-        if has_rb {
-            framebuffer.render_buffer = Some(RenderBuffer::for_framebuffer(&mut framebuffer));
-        }
+        if has_rb { framebuffer.gen_render_buffer() };
         framebuffer.check_status()?;
-        Framebuffer::unbind();
+        // Framebuffer::unbind();
 
         Ok(framebuffer)
     }
@@ -56,19 +54,43 @@ impl Framebuffer {
 
     pub fn gen_textures(&mut self, n: usize) {
         unsafe {
-            for _ in 0..n {
-                let (attachment, texture) = Texture::for_framebuffer(self);
+            for i in 0..n {
+                let texture = Texture::new_mut(self.width, self.height);
+                let attachment = gl::COLOR_ATTACHMENT0 + i as u32;
+
+                // Bind to framebuffer
+                gl::NamedFramebufferTexture(
+                    self.id,
+                    attachment,
+                    texture.get_id(),
+                    0
+                );
                 
-                self.textures.push(texture);
+                self.textures.push(Rc::new(texture));
                 self.draw_buffers.push(attachment);
             }
 
-            // Bind color attachments to the buffer
-            gl::DrawBuffers(
+            gl::NamedFramebufferDrawBuffers(
+                self.id,
                 self.draw_buffers.len() as i32,
                 self.draw_buffers.as_ptr()
             );
         }
+    }
+
+    pub fn gen_render_buffer(&mut self) {
+        let render_buffer = RenderBuffer::new(self.width, self.height);
+
+        unsafe {
+            gl::NamedFramebufferRenderbuffer(
+                self.get_id(),
+                gl::DEPTH_STENCIL_ATTACHMENT,
+                gl::RENDERBUFFER,
+                render_buffer.get_id()
+            );
+        }
+
+        self.render_buffer = Some(render_buffer);
     }
 
     pub fn check_status(&self) -> Result<(), GlError> {
