@@ -46,6 +46,8 @@ pub use gl_image::*;
 // TODO: Combine entire model into one draw call
 // TODO:    Follow this: https://www.khronos.org/assets/uploads/developers/library/2013-siggraph-opengl-bof/Batch-and-Cull-in-OpenGL-BOF_SIGGRAPH-2013.pdf
 // TODO:    This is more something you should follow once an engine is established
+// TODO:    Don't need instanced rendering if everything is one draw call!
+// TODO:    https://webglfundamentals.org/webgl/lessons/webgl-qna-drawing-many-different-models-in-a-single-draw-call.html
 // TODO: Implement transparency (see if qsort is fast enough to do it each frame for each model of the scene?)
 // TODO: Add simple and efficient lighting to everything (do serious research when it comes to doing this on forward and deffered pipelines)
 // TODO: Implement multisampling on all render pipelines (maybe make multisampled versions of them?)
