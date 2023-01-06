@@ -29,21 +29,15 @@ impl UniformBuffer {
 
     pub fn create_ubo(&mut self, buffer_size: u32) {
         unsafe {
-            gl::GenBuffers(1, &mut self.id);
-
-            gl::BindBuffer(gl::UNIFORM_BUFFER, self.id);
-            gl::BufferData(gl::UNIFORM_BUFFER, buffer_size as isize, std::ptr::null(), gl::DYNAMIC_DRAW);
-            gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
-
+            gl::CreateBuffers(1, &mut self.id);
+            gl::NamedBufferData(self.id, buffer_size as isize, std::ptr::null(), gl::DYNAMIC_DRAW);
             gl::BindBufferRange(gl::UNIFORM_BUFFER, 0, self.id, 0, buffer_size as isize);
         }
     }
 
     pub fn write_data<T>(&self, data: *const gl::types::GLvoid, offset: u32) {
         unsafe {
-            gl::BindBuffer(gl::UNIFORM_BUFFER, self.id);
-            gl::BufferSubData(gl::UNIFORM_BUFFER, offset as isize, std::mem::size_of::<T>() as isize, data);
-            gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
+            gl::NamedBufferSubData(self.id, offset as isize, std::mem::size_of::<T>() as isize, data);
         }
     }
 }

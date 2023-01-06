@@ -24,7 +24,8 @@ impl Framebuffer {
         unsafe {
             gl::CreateFramebuffers(1, &mut framebuffer.id);
         }
-            
+        
+        // TODO: NO BINDS!
         // Set up renderbuffer, all these assume framebuffer is bound
         framebuffer.bind();
         framebuffer.gen_textures(tex_num);

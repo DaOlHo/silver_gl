@@ -48,5 +48,6 @@ pub use gl_image::*;
 // TODO: Add simple and efficient lighting to everything (do serious research when it comes to doing this on forward and deffered pipelines)
 // TODO: Implement multisampling on all render pipelines (maybe make multisampled versions of them?)
 // TODO: Create test suite
+// TODO: Finish LearnOpenGL and do all the guest articles as well
 // TODO: Comments that use better-comments styles
 // TODO: Create documentation using rust's documentation thing (Have GL errors section in docs as well as panics section)
