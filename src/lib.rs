@@ -40,10 +40,12 @@ pub use view_3d_scene::*;
 pub use view_2d_render_pipeline::*;
 pub use gl_image::*;
 
-// TODO: Combine entire model into one draw call
 // TODO: Create resource manager that handles loading textures and VAO/VBOs, the gives reference counted pointers to the resources
 // TODO:    Create game objects system that receives references to resources managed by the resource manager (engine specific thing?)
 // TODO:    Game object per object in the engine, with the resource manager handling gameobjects -> transforms in model's tbo
+// TODO: Combine entire model into one draw call
+// TODO:    Follow this: https://www.khronos.org/assets/uploads/developers/library/2013-siggraph-opengl-bof/Batch-and-Cull-in-OpenGL-BOF_SIGGRAPH-2013.pdf
+// TODO:    This is more something you should follow once an engine is established
 // TODO: Implement transparency (see if qsort is fast enough to do it each frame for each model of the scene?)
 // TODO: Add simple and efficient lighting to everything (do serious research when it comes to doing this on forward and deffered pipelines)
 // TODO: Implement multisampling on all render pipelines (maybe make multisampled versions of them?)
