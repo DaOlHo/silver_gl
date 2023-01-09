@@ -43,6 +43,7 @@ pub use gl_image::*;
 // TODO: Create resource manager that handles loading textures and VAO/VBOs, the gives reference counted pointers to the resources
 // TODO:    Create game objects system that receives references to resources managed by the resource manager (engine specific thing?)
 // TODO:    Game object per object in the engine, with the resource manager handling gameobjects -> transforms in model's tbo
+// TODO: Move scenes and render pipelines out into engine
 // TODO: Combine entire model into one draw call
 // TODO:    Follow this: https://www.khronos.org/assets/uploads/developers/library/2013-siggraph-opengl-bof/Batch-and-Cull-in-OpenGL-BOF_SIGGRAPH-2013.pdf
 // TODO:    This is more something you should follow once an engine is established
@@ -55,3 +56,4 @@ pub use gl_image::*;
 // TODO: Finish LearnOpenGL and do all the guest articles as well
 // TODO: Comments that use better-comments styles
 // TODO: Create documentation using rust's documentation thing (Have GL errors section in docs as well as panics section)
+// TODO: Maybe implement compute shaders to do matrix transforms once each frame but faster than on CPU?

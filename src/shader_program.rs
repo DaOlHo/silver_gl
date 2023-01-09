@@ -12,6 +12,7 @@ pub struct ShaderProgram {
     maybe_geometry_path: Option<String>
 }
 
+// TODO: move to resource manager
 impl ShaderProgram {
     pub fn new(vertex_path: String, fragment_path: String, maybe_geometry_path: Option<String>) -> Result<ShaderProgram, GlError> {
         let mut shader_program = ShaderProgram {

@@ -1,9 +1,8 @@
-use std::rc::Rc;
 use cgmath::{Matrix4, Vector3, Vector2};
 use crate::Model;
+use super::{Mesh, Vertex};
 
-use super::{Texture, Mesh, Vertex, GlError};
-
+// TODO: Move to resource manageer
 pub fn create_quad(model_transforms: Vec<Matrix4<f32>>) -> Model {
     // Flat panel definition
     let vertices = vec![
@@ -38,35 +37,8 @@ pub fn create_quad(model_transforms: Vec<Matrix4<f32>>) -> Model {
         0, 2, 3
     ];
 
-    let mut model = Model::from_raw(vertices, indices, model_transforms);
+    let mut model = Model::new(vertices, indices, model_transforms);
     model.meshes.push(Mesh::new(0, 6));
 
     model
-}
-
-pub fn create_quad_from_paths(
-    diff_map: Option<&str>,
-    norm_map: Option<&str>,
-    disp_map: Option<&str>,
-    model_transforms: Vec<Matrix4<f32>>
-) -> Result<Model, GlError> {    
-    let mut quad = create_quad(model_transforms);
-
-    if let Some(diff_path) = diff_map {
-        quad.meshes[0].diffuse_textures.push(
-            Rc::new(Texture::from_file_2d(diff_path)?)
-        );
-    }
-    if let Some(norm_path) = norm_map {
-        quad.meshes[0].normal_textures.push(
-            Rc::new(Texture::from_file_2d(norm_path)?)
-        )
-    };
-    if let Some(disp_path) = disp_map {
-        quad.meshes[0].displacement_textures.push(
-            Rc::new(Texture::from_file_2d(disp_path)?)
-        );
-    }
-
-    Ok(quad)
 }

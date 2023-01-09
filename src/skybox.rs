@@ -72,9 +72,9 @@ impl Skybox {
 
         let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
 
-        let mut model = Model::from_raw(vertices, indices, model_transforms);
+        let mut model = Model::new(vertices, indices, model_transforms);
         model.meshes.push(Mesh::new(0, 36));
-        model.meshes[0].diffuse_textures.push(Rc::new(Texture::from_file_cubemap(faces)?));
+        model.meshes[0].diffuse_textures.push(Rc::new(Texture::from_cubemap(faces)?));
 
         Ok(Skybox { model })
     }

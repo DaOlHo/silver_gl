@@ -3,20 +3,16 @@ use super::{GlError, GlImage};
 pub struct Texture {
     id: u32,
     target: gl::types::GLenum,
-    pub path: String,
     can_resize: bool
 }
 
 impl Texture {
-    pub fn from_file_2d(path: &str) -> Result<Texture, GlError> {
+    pub fn from_2D(image: GlImage) -> Texture {
         let mut texture = Texture {
             id: 0,
             target: gl::TEXTURE_2D,
-            path: path.to_owned(),
             can_resize: false
         };
-
-        let gl_image = GlImage::from_file(path)?;
     
         unsafe {
             gl::CreateTextures(texture.target, 1, &mut texture.id);
@@ -24,9 +20,9 @@ impl Texture {
             gl::TextureStorage2D(
                 texture.id,
                 1,
-                gl_image.internal_format,
-                gl_image.width,
-                gl_image.height
+                image.internal_format,
+                image.width,
+                image.height
             );
 
             gl::TextureSubImage2D(
@@ -34,11 +30,11 @@ impl Texture {
                 0,
                 0,
                 0,
-                gl_image.width,
-                gl_image.height,
-                gl_image.data_format,
+                image.width,
+                image.height,
+                image.data_format,
                 gl::UNSIGNED_BYTE,
-                gl_image.bytes.as_ptr() as *const gl::types::GLvoid
+                image.bytes.as_ptr() as *const gl::types::GLvoid
             );
             
             gl::GenerateTextureMipmap(texture.id);
@@ -48,10 +44,10 @@ impl Texture {
             gl::TextureParameteri(texture.id, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
         }
 
-        Ok(texture)
+        texture
     }
 
-    pub fn from_file_cubemap(faces: Vec<String>) -> Result<Texture, GlError> {
+    pub fn from_cubemap(faces: Vec<GlImage>) -> Result<Texture, GlError> {
         if faces.len() != 6 {
             return Err(GlError::IncorrectSize(String::from("cubemap has less than 6 faces")));
         }
@@ -59,15 +55,8 @@ impl Texture {
         let mut texture = Texture {
             id: 0,
             target: gl::TEXTURE_CUBE_MAP,
-            path: faces[0].clone(), // Uses first texture as path
             can_resize: false
         };
-
-        let mut face_imgs = Vec::new();
-
-        for face in faces {
-            face_imgs.push(GlImage::from_file(face.as_str())?);
-        }
 
         unsafe {
             gl::CreateTextures(texture.target, 1, &mut texture.id);
@@ -75,12 +64,12 @@ impl Texture {
             gl::TextureStorage2D(
                 texture.id,
                 1,
-                face_imgs[0].internal_format,
-                face_imgs[0].width,
-                face_imgs[0].height
+                faces[0].internal_format,
+                faces[0].width,
+                faces[0].height
             );
 
-            for (i, face) in face_imgs.iter().enumerate() {
+            for (i, face) in faces.iter().enumerate() {
                 // Texture::load_file(face, gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32)?;
                 gl::TextureSubImage3D(
                     texture.id,
@@ -111,7 +100,6 @@ impl Texture {
     pub fn new_mut(width: i32, height: i32) -> Texture {
         let mut texture = Texture {
             id: 0,
-            path: "".into(),
             target: gl::TEXTURE_2D,
             can_resize: true
         };
