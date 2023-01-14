@@ -1,12 +1,14 @@
+use std::{rc::Rc, cell::RefCell};
+
 use super::{Model, Skybox, ShaderProgram, Camera, RenderPipeline, GlError, Scene};
 
 // TODO: add lights, need a light trait
 // TODO: See if qsort is fast enough that  to allow me to sort models based on distance from the camera every frame, enabling transparency
 pub struct View3DScene {
-    pub models: Vec<Model>,
-    pub model_shader_program: ShaderProgram,
+    pub models: Vec<Rc<RefCell<Model>>>,
+    pub model_shader_program: Rc<ShaderProgram>,
     pub skybox: Skybox,
-    pub skybox_shader_program: ShaderProgram,
+    pub skybox_shader_program: Rc<ShaderProgram>,
     pub camera: Camera,
     pub render_pipeline: Box<dyn RenderPipeline>,
 }
@@ -30,7 +32,7 @@ impl Scene for View3DScene {
         self.model_shader_program.use_program();
 
         for model in self.models.iter() {
-            model.draw(&self.model_shader_program)?;
+            model.borrow().draw(&self.model_shader_program)?;
         }
 
         // Drawn last so it only is drawn over unused pixels, improving performance

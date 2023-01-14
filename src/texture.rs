@@ -7,7 +7,7 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn from_2D(image: GlImage) -> Texture {
+    pub fn from_2d(image: GlImage) -> Texture {
         let mut texture = Texture {
             id: 0,
             target: gl::TEXTURE_2D,
@@ -47,16 +47,14 @@ impl Texture {
         texture
     }
 
-    pub fn from_cubemap(faces: Vec<GlImage>) -> Result<Texture, GlError> {
-        if faces.len() != 6 {
-            return Err(GlError::IncorrectSize(String::from("cubemap has less than 6 faces")));
-        }
-
+    pub fn from_cubemap(image: GlImage) -> Texture {
         let mut texture = Texture {
             id: 0,
             target: gl::TEXTURE_CUBE_MAP,
             can_resize: false
         };
+
+        let square_size = image.height / 3;
 
         unsafe {
             gl::CreateTextures(texture.target, 1, &mut texture.id);
@@ -64,25 +62,38 @@ impl Texture {
             gl::TextureStorage2D(
                 texture.id,
                 1,
-                faces[0].internal_format,
-                faces[0].width,
-                faces[0].height
+                image.internal_format,
+                square_size,
+                square_size
             );
 
-            for (i, face) in faces.iter().enumerate() {
-                // Texture::load_file(face, gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32)?;
+            for i in 0..6 {
+                // Convert to offset of faces
+                let offset = match i {
+                    0 => (2 * square_size, square_size),
+                    1 => (0, square_size),
+                    2 => (square_size, 0),
+                    3 => (square_size, 2 * square_size),
+                    4 => (square_size, square_size),
+                    5 => (3 * square_size, square_size),
+                    _ => panic!() // Should not be possible
+                };
+
                 gl::TextureSubImage3D(
                     texture.id,
                     0,
                     0,
                     0,
                     i as i32,
-                    face.width,
-                    face.height,
+                    square_size,
+                    square_size,
                     1,
-                    face.data_format,
+                    image.data_format,
                     gl::UNSIGNED_BYTE,
-                    face.bytes.as_ptr() as *const gl::types::GLvoid
+                    image.sub_image(
+                        offset.0, offset.1,
+                        square_size, square_size
+                    ).as_ptr() as *const gl::types::GLvoid
                 );
             }
 
@@ -93,7 +104,7 @@ impl Texture {
             gl::TextureParameteri(texture.id, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
         }
 
-        Ok(texture)
+        texture
     }
 
     // Doesn't need GlError since this only generates gl callback errors

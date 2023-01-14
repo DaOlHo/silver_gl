@@ -11,8 +11,7 @@ pub enum GlError{
     UniformInvalidIndex(String, u32),
     FramebufferNotComplete(u32),
     UniformBufferMissing,
-    CannotResize(u32),
-    IncorrectSize(String)
+    CannotResize(u32)
 }
 
 impl Display for GlError {
@@ -31,8 +30,7 @@ impl Display for GlError {
                 write!(f, "Framebuffer '{}' is not complete", id)
             },
             GlError::UniformBufferMissing => write!(f, "Uniform buffer is not present"),
-            GlError::CannotResize(id) => write!(f, "Cannot resize texture '{}'", id),
-            GlError::IncorrectSize(msg) => write!(f, "Icorrect size: {}", msg)
+            GlError::CannotResize(id) => write!(f, "Cannot resize texture '{}'", id)
         }
     }
 }

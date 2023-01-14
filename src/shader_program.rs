@@ -1,52 +1,27 @@
 use std::{ffi::CString, fmt::Display};
-use std::fs::File;
-use std::io::Read;
 use std::ptr;
 use cgmath::{Vector3, Array, Matrix4, Matrix};
 use super::error::GlError;
 
-pub struct ShaderProgram {
-    id: u32,
-    vertex_path: String,
-    fragment_path: String,
-    maybe_geometry_path: Option<String>
-}
+pub struct ShaderProgram { id: u32 }
 
-// TODO: move to resource manager
 impl ShaderProgram {
-    pub fn new(vertex_path: String, fragment_path: String, maybe_geometry_path: Option<String>) -> Result<ShaderProgram, GlError> {
-        let mut shader_program = ShaderProgram {
-            id: 0,
-            vertex_path,
-            fragment_path,
-            maybe_geometry_path
-        };
+    pub fn new(shader_bundle: ShaderCodeBundle) -> Result<ShaderProgram, GlError> {
+        let mut shader_program = ShaderProgram { id: 0 };
 
-        shader_program.compile_program()?;
+        shader_program.compile_program(shader_bundle)?;
 
         Ok(shader_program)
     }
 
-    pub fn reload(&mut self) -> Result<(), GlError> {
-        unsafe {
-            gl::UseProgram(0);
-            gl::DeleteProgram(self.id);
+    pub fn compile_program(&mut self, shader_bundle: ShaderCodeBundle) -> Result<(), GlError> {
+        let mut shader_ids = Vec::new();
+
+        for (code, type_) in shader_bundle.get_vec() {
+            if let Some(code) = code {
+                shader_ids.push(ShaderProgram::compile_shader(code, type_)?);
+            }
         }
-
-        self.id = 0;
-        self.compile_program()
-    }
-
-    pub fn compile_program(&mut self) -> Result<(), GlError> {
-        let vert_shader = ShaderProgram::compile_shader(&self.vertex_path, ShaderCompileType::Vertex)?;
-        let frag_shader = ShaderProgram::compile_shader(&self.fragment_path, ShaderCompileType::Fragment)?;
-
-        // Geometry shader is the only one that is optional
-        let geom_shader = if let Some(geometry_path) = &self.maybe_geometry_path {
-            ShaderProgram::compile_shader(geometry_path, ShaderCompileType::Geometry)?
-        } else {
-            0
-        };
 
         let shader_program_id;
 
@@ -55,9 +30,9 @@ impl ShaderProgram {
 
             println!("DEBUG::SHADER::PROGRAM::ATTACHING_SHADERS");
 
-            gl::AttachShader(shader_program_id, vert_shader);
-            gl::AttachShader(shader_program_id, frag_shader);
-            if geom_shader != 0 { gl::AttachShader(shader_program_id, geom_shader); }
+            for id in shader_ids.iter() {
+                gl::AttachShader(shader_program_id, *id);
+            }
 
             println!("DEBUG::SHADER::PROGRAM::COMPILING_PROGRAM");
 
@@ -66,9 +41,9 @@ impl ShaderProgram {
 
             println!("DEBUG::SHADER::PROGRAM::COMPILATION_COMPLETE");
 
-            gl::DeleteShader(vert_shader);
-            gl::DeleteShader(frag_shader);
-            if geom_shader != 0 { gl::DeleteShader(geom_shader); }
+            for id in shader_ids.iter() {
+                gl::DeleteShader(*id);
+            }
         }
 
         self.id = shader_program_id;
@@ -76,15 +51,15 @@ impl ShaderProgram {
         Ok(())
     }
 
-    pub fn compile_shader(path: &str, type_: ShaderCompileType) -> Result<u32, GlError> {
-        let mut shader_file = File::open(path)?;
-        let mut shader_code = String::new();
+    pub fn compile_shader(code: &str, type_: ShaderCompileType) -> Result<u32, GlError> {
+        // let mut shader_file = File::open(path)?;
+        // let mut shader_code = String::new();
 
-        println!("DEBUG::SHADER::{}::READING_FILE: {}", type_, path);
+        // println!("DEBUG::SHADER::{}::READING_FILE: {}", type_, path);
 
-        shader_file.read_to_string(&mut shader_code)?;
+        // shader_file.read_to_string(&mut shader_code)?;
 
-        let shader_code = CString::new(shader_code.as_bytes())?;
+        let shader_code = CString::new(code.as_bytes())?;
         let shader_type = match type_ {
             ShaderCompileType::Vertex => gl::VERTEX_SHADER,
             ShaderCompileType::Geometry => gl::GEOMETRY_SHADER,
@@ -311,5 +286,22 @@ impl Display for ShaderCompileType {
         };
 
         write!(f, "{}", str)
+    }
+}
+
+#[derive(Default)]
+pub struct ShaderCodeBundle {
+    pub vertex: Option<String>,
+    pub geometry: Option<String>,
+    pub fragment: Option<String>
+}
+
+impl ShaderCodeBundle {
+    pub fn get_vec(&self) -> Vec<(&Option<String>, ShaderCompileType)> {
+        vec![
+            (&self.vertex, ShaderCompileType::Vertex),
+            (&self.geometry, ShaderCompileType::Geometry),
+            (&self.fragment, ShaderCompileType::Fragment)
+        ]
     }
 }

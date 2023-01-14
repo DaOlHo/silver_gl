@@ -12,9 +12,14 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(mut vertices: Vec<Vertex>, mut indices: Vec<u32>, model_transforms: Vec<Matrix4<f32>>) -> Model {
+    pub fn new(
+        mut vertices: Vec<Vertex>,
+        mut indices: Vec<u32>,
+        model_transforms: Vec<Matrix4<f32>>,
+        meshes: Vec<Mesh>
+    ) -> Model {
         let mut model = Model {
-            meshes: Vec::new(),
+            meshes,
             vao: VertexArray::new(),
             vbo: Buffer::new(),
             ebo: Buffer::new(),

@@ -4,10 +4,10 @@ use super::{Framebuffer, ShaderProgram, GlError, RenderPipeline, Texture};
 pub struct View3DRenderPipeline {
     deffered_fb: Framebuffer,
     lighting_pass_fb: Framebuffer,
-    lighting_pass_shader_program: ShaderProgram,
+    lighting_pass_shader_program: Rc<ShaderProgram>,
     ping_framebuffer: Framebuffer,
     pong_framebuffer: Framebuffer,
-    blur_shader_program: ShaderProgram,
+    blur_shader_program: Rc<ShaderProgram>,
     ping_pong_hoz: bool,
     ping_pong_first_iter: bool,
     width: i32,
@@ -18,8 +18,8 @@ impl View3DRenderPipeline {
     pub fn new(
         width: i32,
         height: i32,
-        lighting_pass_shader_program: ShaderProgram,
-        blur_shader_program: ShaderProgram,
+        lighting_pass_shader_program: Rc<ShaderProgram>,
+        blur_shader_program: Rc<ShaderProgram>,
     ) -> Result<View3DRenderPipeline, GlError> {
         // Create g_buffer for deferred shading
         let deffered_fb = Framebuffer::new(

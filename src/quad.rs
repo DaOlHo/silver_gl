@@ -37,8 +37,12 @@ pub fn create_quad(model_transforms: Vec<Matrix4<f32>>) -> Model {
         0, 2, 3
     ];
 
-    let mut model = Model::new(vertices, indices, model_transforms);
-    model.meshes.push(Mesh::new(0, 6));
+    let model = Model::new(
+        vertices,
+        indices,
+        model_transforms, 
+        vec![Mesh::new(0, 6)]
+    );
 
     model
 }
