@@ -43,6 +43,8 @@ pub use gl_image::*;
 // TODO: Create resource manager that handles loading textures and VAO/VBOs, the gives reference counted pointers to the resources
 // TODO:    Create game objects system that receives references to resources managed by the resource manager (engine specific thing?)
 // TODO:    Game object per object in the engine, with the resource manager handling gameobjects -> transforms in model's tbo
+// TODO:    Game objects work by holding position, a drawable, and children. They position themselves relative to their parent, with position
+// TODO:    being in the range [-1,1]. The top level screen is therefore also a game object that holds the rest.
 // TODO: Move scenes and render pipelines out into engine
 // TODO: Combine entire model into one draw call
 // TODO:    Follow this: https://www.khronos.org/assets/uploads/developers/library/2013-siggraph-opengl-bof/Batch-and-Cull-in-OpenGL-BOF_SIGGRAPH-2013.pdf
