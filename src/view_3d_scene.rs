@@ -2,6 +2,8 @@ use std::{rc::Rc, cell::RefCell};
 
 use super::{Model, Skybox, ShaderProgram, Camera, RenderPipeline, GlError, Scene};
 
+// TODO: Once moved to engine, switch to using gameobjects. Resource manager can then handle
+// TODO: drawing maybe?
 // TODO: add lights, need a light trait
 // TODO: See if qsort is fast enough that  to allow me to sort models based on distance from the camera every frame, enabling transparency
 pub struct View3DScene {

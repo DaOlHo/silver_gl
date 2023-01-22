@@ -1,7 +1,7 @@
 use cgmath::{Vector3, Point3, vec3, Zero, Matrix4, InnerSpace, Deg, Matrix};
-
 use super::{UniformBuffer, GlError, ShaderProgram};
 
+// TODO: move to engine
 #[derive(PartialEq, Clone, Copy)]
 pub enum CameraMovement {
     FORWARD,
