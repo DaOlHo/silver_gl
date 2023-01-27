@@ -75,6 +75,16 @@ impl<T> Buffer<T> {
         self.send_data_mut();
     }
 
+    // These methods are unsafe because they modify the inner data without sending,
+    // which is intended to be used to batch changes before sending it all at once
+    pub unsafe fn push_to_inner(&mut self, data: T) {
+        self.data.push(data);
+    }
+
+    pub unsafe fn clear_inner(&mut self) {
+        self.data.clear();
+    }
+
     // Cheaper since there is no resize, but requires mutability.
     // Panics if out of bounds
     pub fn set_data_index(&mut self, data: T, index: usize) {
