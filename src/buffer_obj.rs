@@ -85,6 +85,10 @@ impl<T> Buffer<T> {
         self.data.clear();
     }
 
+    pub unsafe fn set_data_index_inner(&mut self, data: T, index: usize) {
+        self.data[index] = data;
+    }
+
     // Cheaper since there is no resize, but requires mutability.
     // Panics if out of bounds
     pub fn set_data_index(&mut self, data: T, index: usize) {

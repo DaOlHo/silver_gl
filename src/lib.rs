@@ -40,3 +40,4 @@ pub use gl_image::*;
 // TODO: Comments that use better-comments styles
 // TODO: Create documentation using rust's documentation thing (Have GL errors section in docs as well as panics section)
 // TODO: Maybe implement compute shaders to do matrix transforms once each frame but faster than on CPU?
+// TODO: Write errors that suggest a solution as well
