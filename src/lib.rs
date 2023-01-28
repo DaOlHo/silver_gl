@@ -12,7 +12,6 @@ mod vertex;
 mod framebuffer;
 mod render_buffer;
 mod render_pipeline;
-mod scene;
 mod gl_image;
 
 pub use shader_program::*;
@@ -29,7 +28,6 @@ pub use vertex::*;
 pub use framebuffer::*;
 pub use render_buffer::*;
 pub use render_pipeline::*;
-pub use scene::*;
 pub use gl_image::*;
 
 // TODO: Implement transparency (see if qsort is fast enough to do it each frame for each model of the scene?)
