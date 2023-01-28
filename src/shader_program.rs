@@ -1,6 +1,6 @@
 use std::{ffi::CString, fmt::Display};
 use std::ptr;
-use cgmath::{Vector3, Array, Matrix4, Matrix};
+use cgmath::{Vector3, Array, Matrix4, Matrix, Vector4};
 use super::error::GlError;
 
 pub struct ShaderProgram { id: u32 }
@@ -186,6 +186,18 @@ impl ShaderProgram {
         }
     }
 
+    pub fn set_vector_4(&self, name: &str, value: &Vector4<f32>) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform(name, |location| gl::Uniform4fv(location, 1, value.as_ptr()))
+        }
+    }
+
+    pub fn set_vec4(&self, name: &str, w: f32, x: f32, y: f32, z: f32) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform(name, |location| gl::Uniform4f(location, w, x, y, z))
+        }
+    }
+
     pub fn set_mat4(&self, name: &str, value: &Matrix4<f32>) -> Result<(), GlError> {
         unsafe {
             self.set_uniform(name, |location| gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr()))
@@ -203,39 +215,35 @@ impl ShaderProgram {
     }
 
     pub unsafe fn set_bool_unsafe(&self, name: &str, value: bool) -> Result<(), GlError> {
-        unsafe {
-            self.set_uniform_unsafe(name, |location| gl::Uniform1i(location, value as gl::types::GLint))
-        }
+        self.set_uniform_unsafe(name, |location| gl::Uniform1i(location, value as gl::types::GLint))
     }
 
     pub unsafe fn set_int_unsafe(&self, name: &str, value: i32) -> Result<(), GlError> {
-        unsafe {
-            self.set_uniform_unsafe(name, |location| gl::Uniform1i(location, value as gl::types::GLint))
-        }
+        self.set_uniform_unsafe(name, |location| gl::Uniform1i(location, value as gl::types::GLint))
     }
 
     pub unsafe fn set_float_unsafe(&self, name: &str, value: f32) -> Result<(), GlError> {
-        unsafe {
-            self.set_uniform_unsafe(name, |location| gl::Uniform1f(location, value as gl::types::GLfloat))
-        }
+        self.set_uniform_unsafe(name, |location| gl::Uniform1f(location, value as gl::types::GLfloat))
     }
 
     pub unsafe fn set_vector_3_unsafe(&self, name: &str, value: &Vector3<f32>) -> Result<(), GlError> {
-        unsafe {
-            self.set_uniform_unsafe(name, |location| gl::Uniform3fv(location, 1, value.as_ptr()))
-        }
+        self.set_uniform_unsafe(name, |location| gl::Uniform3fv(location, 1, value.as_ptr()))
     }
 
     pub unsafe fn set_vec3_unsafe(&self, name: &str, x: f32, y: f32, z: f32) -> Result<(), GlError> {
-        unsafe {
-            self.set_uniform_unsafe(name, |location| gl::Uniform3f(location, x, y, z))
-        }
+        self.set_uniform_unsafe(name, |location| gl::Uniform3f(location, x, y, z))
+    }
+
+    pub unsafe fn set_vector_4_unsafe(&self, name: &str, value: &Vector4<f32>) -> Result<(), GlError> {
+        self.set_uniform_unsafe(name, |location| gl::Uniform4fv(location, 1, value.as_ptr()))
+    }
+
+    pub unsafe fn set_vec4_unsafe(&self, name: &str, w: f32, x: f32, y: f32, z: f32) -> Result<(), GlError> {
+        self.set_uniform_unsafe(name, |location| gl::Uniform4f(location, w, x, y, z))
     }
 
     pub unsafe fn set_mat4_unsafe(&self, name: &str, value: &Matrix4<f32>) -> Result<(), GlError> {
-        unsafe {
-            self.set_uniform_unsafe(name, |location| gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr()))
-        }
+        self.set_uniform_unsafe(name, |location| gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr()))
     }
 
     pub fn bind_to_ubo(&self, name: &str) -> Result<(), GlError> {
