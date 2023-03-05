@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 pub struct Buffer<T> {
     id: u32,
     data: Vec<T>,
@@ -42,14 +44,23 @@ impl<T> Buffer<T> {
     pub unsafe fn send_data_index(&self, index: usize) {
         let size = std::mem::size_of::<T>();
 
-        unsafe {
-            gl::NamedBufferSubData(
-                self.id,
-                (index * size) as isize,
-                size as isize,
-                self.data.as_ptr().add(index) as *const gl::types::GLvoid
-            );
-        }
+        gl::NamedBufferSubData(
+            self.id,
+            (index * size) as isize,
+            size as isize,
+            self.data.as_ptr().add(index) as *const gl::types::GLvoid
+        );
+    }
+
+    pub unsafe fn send_data_range(&self, range: Range<usize>) {
+        let size = std::mem::size_of::<T>();
+
+        gl::NamedBufferSubData(
+            self.id,
+            (range.start * size) as isize,
+            (range.end * size) as isize,
+            self.data.as_ptr().add(range.start) as *const gl::types::GLvoid
+        );
     }
 
     pub fn set_data(&mut self, data: Vec<T>) {
@@ -89,11 +100,22 @@ impl<T> Buffer<T> {
         self.data[index] = data;
     }
 
+    pub unsafe fn set_data_range_inner(&mut self, data: Vec<T>, index: usize) {
+        self.data.splice(index..(index + data.len()), data);
+    }
+
     // Cheaper since there is no resize, but requires mutability.
     // Panics if out of bounds
     pub fn set_data_index(&mut self, data: T, index: usize) {
         self.data[index] = data;
         unsafe { self.send_data_index(index) };
+    }
+
+    pub fn set_data_range(&mut self, data: Vec<T>, index: usize) {
+        let range = index..(index + data.len());
+
+        self.data.splice(range.clone(), data);
+        unsafe { self.send_data_range(range) }
     }
 
     pub fn get_data(&self) -> &Vec<T> {
