@@ -58,7 +58,7 @@ impl<T> Buffer<T> {
         gl::NamedBufferSubData(
             self.id,
             (range.start * size) as isize,
-            (range.end * size) as isize,
+            ((range.end - range.start) * size) as isize,
             self.data.as_ptr().add(range.start) as *const gl::types::GLvoid
         );
     }
@@ -90,6 +90,10 @@ impl<T> Buffer<T> {
     // which is intended to be used to batch changes before sending it all at once
     pub unsafe fn push_to_inner(&mut self, data: T) {
         self.data.push(data);
+    }
+
+    pub unsafe fn push_range_inner(&mut self, mut data: Vec<T>) {
+        self.data.append(&mut data);
     }
 
     pub unsafe fn clear_inner(&mut self) {
