@@ -26,7 +26,7 @@ impl Model {
             tbo: Buffer::new()
         };
 
-        model.calc_vertex_tangents(&mut vertices, &mut indices);
+        Model::calc_vertex_tangents(&mut vertices, &mut indices);
         model.setup_model(vertices, indices);
         model.setup_transform_attribute(model_transforms);
 
@@ -76,7 +76,7 @@ impl Model {
         self.tbo.set_data_mut(model_transforms);
     }
 
-    pub fn calc_vertex_tangents(&mut self, vertices: &mut Vec<Vertex>, indices: &mut Vec<u32>) {
+    pub fn calc_vertex_tangents(vertices: &mut Vec<Vertex>, indices: &mut Vec<u32>) {
         for i in 0..(indices.len() / 3) {
             let index = i * 3;
 
