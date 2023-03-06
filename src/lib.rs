@@ -14,6 +14,10 @@ mod render_buffer;
 mod render_pipeline;
 mod gl_image;
 
+pub mod gl {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
+
 pub use shader_program::*;
 pub use mesh::*;
 pub use model::*;

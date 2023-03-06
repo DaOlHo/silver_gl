@@ -1,4 +1,4 @@
-use super::{Model, ShaderProgram, GlError};
+use super::{Model, ShaderProgram, GlError, gl};
 
 pub struct Skybox {
     pub model: Model

@@ -1,4 +1,5 @@
 use std::ops::Range;
+use super::gl;
 
 pub struct Buffer<T> {
     id: u32,

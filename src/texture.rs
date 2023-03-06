@@ -1,4 +1,4 @@
-use super::{GlError, GlImage};
+use super::{GlError, GlImage, gl};
 
 pub struct Texture {
     id: u32,

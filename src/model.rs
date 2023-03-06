@@ -1,7 +1,7 @@
 use cgmath::{vec2, Matrix4, Vector3, Zero};
 use memoffset::offset_of;
 use crate::Buffer;
-use super::{ShaderProgram, Mesh, Vertex, GlError, VertexArray};
+use super::{ShaderProgram, Mesh, Vertex, GlError, VertexArray, gl};
 
 pub struct Model {
     pub meshes: Vec<Mesh>,

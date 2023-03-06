@@ -1,5 +1,5 @@
 use super::ShaderProgram;
-use super::GlError;
+use super::{GlError, gl};
 
 // UBO can have multiple types of data, so it doesn't have a type
 pub struct UniformBuffer {

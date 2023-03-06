@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use cgmath::{Matrix4, vec3};
-use super::{GlError, Texture, RenderBuffer, Model, create_quad, ShaderProgram};
+use super::{GlError, Texture, RenderBuffer, Model, create_quad, ShaderProgram, gl};
 
 pub struct Framebuffer {
     id: u32,

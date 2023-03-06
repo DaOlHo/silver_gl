@@ -1,4 +1,4 @@
-use crate::Buffer;
+use super::{Buffer, gl};
 
 pub struct VertexArray {
     id: u32,

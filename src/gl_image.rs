@@ -1,3 +1,5 @@
+use super::gl;
+
 pub struct GlImage {
     pub bytes: Vec<u8>,
     pub internal_format: gl::types::GLenum,

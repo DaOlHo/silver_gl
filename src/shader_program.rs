@@ -1,7 +1,7 @@
 use std::{ffi::CString, fmt::Display};
 use std::ptr;
 use cgmath::{Vector3, Array, Matrix4, Matrix, Vector4};
-use super::error::GlError;
+use super::{error::GlError, gl};
 
 pub struct ShaderProgram { id: u32 }
 

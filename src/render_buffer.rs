@@ -1,3 +1,5 @@
+use super::gl;
+
 pub struct RenderBuffer {
     id: u32
 }
