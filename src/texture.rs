@@ -177,6 +177,22 @@ impl Texture {
     pub fn get_id(&self) -> u32 {
         self.id
     }
+
+    // Requires GL_ARB_bindless_texture
+    // Modifies texture to be immutable, but not its contents
+    pub unsafe fn get_handle(&self) -> u64 {
+        gl::GetTextureHandleARB(self.id)
+    }
+
+    // Needs to be used whenever texture is intended for use
+    pub unsafe fn make_resident(&self) {
+        gl::MakeTextureHandleResidentARB(self.get_handle());
+    }
+
+    // Should be used whenever texture is not in use
+    pub unsafe fn revoke_resident(&self) {
+        gl::MakeTextureHandleNonResidentARB(self.get_handle());
+    }
 }
 
 impl Drop for Texture {
