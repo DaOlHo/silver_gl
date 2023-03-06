@@ -47,6 +47,46 @@ impl Texture {
         texture
     }
 
+    pub fn from_2d_ui(image: GlImage) -> Texture {
+        let mut texture = Texture {
+            id: 0,
+            target: gl::TEXTURE_2D,
+            can_resize: false
+        };
+    
+        unsafe {
+            gl::CreateTextures(texture.target, 1, &mut texture.id);
+            
+            gl::TextureStorage2D(
+                texture.id,
+                1,
+                image.internal_format,
+                image.width,
+                image.height
+            );
+
+            gl::TextureSubImage2D(
+                texture.id,
+                0,
+                0,
+                0,
+                image.width,
+                image.height,
+                image.data_format,
+                gl::UNSIGNED_BYTE,
+                image.bytes.as_ptr() as *const gl::types::GLvoid
+            );
+            
+            gl::GenerateTextureMipmap(texture.id);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            gl::TextureParameteri(texture.id, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+        }
+
+        texture
+    }
+
     pub fn from_cubemap(image: GlImage) -> Texture {
         let mut texture = Texture {
             id: 0,
