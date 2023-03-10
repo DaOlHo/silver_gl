@@ -33,11 +33,37 @@ impl Model {
         model
     }
 
+    // TODO: work on making this work with textures so there is one draw call
+    // TODO: Use bindless textures and ubos to do this in one big draw call
+    // TODO: Check if those extensions are supported, if not, just draw
+    // TODO: each mesh individually like normal.
+    // TODO: https://litasa.github.io/blog/2017/09/04/OpenGL-MultiDrawIndirect-with-Individual-Textures
     pub fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
         unsafe {
             self.vao.bind();
 
-            // TODO: work on making this work with textures so there is one draw call
+            for mesh in &self.meshes {
+                mesh.set_textures(shader_program)?;
+                self.vao.draw_elements_offset(
+                    mesh.get_count(),
+                    mesh.get_offset(),
+                    self.tbo.len() as i32
+                );
+    
+                // Set back to defaults once configured
+                gl::ActiveTexture(gl::TEXTURE0);
+            }
+
+            gl::BindVertexArray(0);
+        }
+
+        Ok(())
+    }
+
+    pub fn draw_bindless(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
+        unsafe {
+            self.vao.bind();
+
             for mesh in &self.meshes {
                 mesh.set_textures(shader_program)?;
                 self.vao.draw_elements_offset(
