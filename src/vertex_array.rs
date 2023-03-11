@@ -97,6 +97,20 @@ impl VertexArray {
         }
     }
 
+    // Need to generate and bind commands array beforehand
+    // GL_DRAW_INDIRECT_BUFFER must be bound
+    pub fn draw_elements_multi_indirect(&self, command_count: i32) {
+        unsafe {
+            gl::MultiDrawElementsIndirect(
+                gl::TRIANGLES,
+                gl::UNSIGNED_INT,
+                std::ptr::null(),
+                command_count,
+                0 // Draw commands are tightly packed
+            )
+        }
+    }
+
     pub fn get_id(&self) -> u32 {
         self.id
     }
@@ -109,4 +123,15 @@ impl Drop for VertexArray {
             gl::DeleteVertexArrays(1, &self.id);
         }
     }
+}
+
+// To be used with glMultiDrawElementsIndirect,
+// Longer name is DrawElementsIndirectCommand
+#[repr(C, packed)]
+pub struct DrawCommand {
+    count: u32,
+    instance_count: u32,
+    first_index: u32,
+    base_vertex: i32,
+    base_instance: u32
 }

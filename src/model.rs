@@ -1,14 +1,16 @@
 use cgmath::{vec2, Matrix4, Vector3, Zero};
 use memoffset::offset_of;
-use crate::Buffer;
+use crate::{Buffer, DrawCommand};
 use super::{ShaderProgram, Mesh, Vertex, GlError, VertexArray, gl};
 
 pub struct Model {
     pub meshes: Vec<Mesh>,
+    // TODO: rename these to something more descriptive
     pub vao: VertexArray,
     pub vbo: Buffer<Vertex>,
     pub ebo: Buffer<u32>,
-    pub tbo: Buffer<Matrix4<f32>>
+    pub tbo: Buffer<Matrix4<f32>>,
+    pub cbo: Option<Buffer<DrawCommand>>
 }
 
 impl Model {
@@ -23,8 +25,34 @@ impl Model {
             vao: VertexArray::new(),
             vbo: Buffer::new(),
             ebo: Buffer::new(),
-            tbo: Buffer::new()
+            tbo: Buffer::new(),
+            cbo: None
         };
+
+        Model::calc_vertex_tangents(&mut vertices, &mut indices);
+        model.setup_model(vertices, indices);
+        model.setup_transform_attribute(model_transforms);
+
+        model
+    }
+
+    pub fn new_bindless(
+        mut vertices: Vec<Vertex>,
+        mut indices: Vec<u32>,
+        model_transforms: Vec<Matrix4<f32>>,
+        meshes: Vec<Mesh>
+    ) -> Model {
+        let mut model = Model {
+            meshes,
+            vao: VertexArray::new(),
+            vbo: Buffer::new(),
+            ebo: Buffer::new(),
+            tbo: Buffer::new(),
+            cbo: Some(Buffer::new())
+        };
+
+        // TODO: generate draw calls and add them
+        // TODO: to buffer
 
         Model::calc_vertex_tangents(&mut vertices, &mut indices);
         model.setup_model(vertices, indices);
@@ -60,9 +88,17 @@ impl Model {
         Ok(())
     }
 
+    // Panics if there is no cbo present in the model
     pub fn draw_bindless(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
         unsafe {
             self.vao.bind();
+            // TODO: make model trait, and create a bindless model so there doesn't need to be this option,
+            // TODO: and there doesn't need to be a check or unwrap every frame
+            let cbo_id = self.cbo.as_ref()
+                .expect("Model should have been initialized with new_bindless!")
+                .get_id();
+
+            gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, cbo_id);
 
             for mesh in &self.meshes {
                 mesh.set_textures(shader_program)?;
