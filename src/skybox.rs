@@ -1,7 +1,9 @@
-use super::{Model, ShaderProgram, GlError, gl};
+use crate::BindlessModel;
+
+use super::{ModelTrait, ShaderProgram, GlError, gl};
 
 pub struct Skybox {
-    pub model: Model
+    pub model: BindlessModel // Only one skybox at a time is presumed to exist
 }
 
 impl Skybox {

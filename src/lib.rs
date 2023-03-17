@@ -1,7 +1,6 @@
 mod shader_program;
 mod mesh;
 mod model;
-mod quad;
 mod skybox;
 mod uniform_buffer;
 mod error;
@@ -14,6 +13,7 @@ mod render_buffer;
 mod render_pipeline;
 mod gl_image;
 
+pub mod model_utils;
 pub mod gl {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
@@ -21,7 +21,6 @@ pub mod gl {
 pub use shader_program::*;
 pub use mesh::*;
 pub use model::*;
-pub use quad::*;
 pub use skybox::*;
 pub use uniform_buffer::*;
 pub use error::*;

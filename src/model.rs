@@ -3,109 +3,168 @@ use memoffset::offset_of;
 use crate::{Buffer, DrawCommand};
 use super::{ShaderProgram, Mesh, Vertex, GlError, VertexArray, gl};
 
-pub struct Model {
-    pub meshes: Vec<Mesh>,
-    // TODO: rename these to something more descriptive
-    pub vao: VertexArray,
-    pub vbo: Buffer<Vertex>,
-    pub ebo: Buffer<u32>,
-    pub tbo: Buffer<Matrix4<f32>>,
-    pub cbo: Option<Buffer<DrawCommand>>
+pub trait ModelTrait {
+    fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError>;
 }
 
-impl Model {
+pub trait ModelCreateTrait {
+    fn new(vertices: Vec<Vertex>, indices: Vec<u32>, model_transform: Vec<Matrix4<f32>>, meshes: Vec<Mesh>) -> Self;
+}
+
+pub struct MultiBindModel {
+    pub meshes: Vec<Mesh>,
+    // TODO: rename these to something more descriptive
+    pub vertex_array: VertexArray,
+    pub vertex_buffer: Buffer<Vertex>,
+    pub element_buffer: Buffer<u32>,
+    pub transform_buffer: Buffer<Matrix4<f32>>,
+}
+
+impl MultiBindModel {
     pub fn new(
         mut vertices: Vec<Vertex>,
         mut indices: Vec<u32>,
         model_transforms: Vec<Matrix4<f32>>,
         meshes: Vec<Mesh>
-    ) -> Model {
-        let mut model = Model {
+    ) -> Self {
+        let mut model = Self {
             meshes,
-            vao: VertexArray::new(),
-            vbo: Buffer::new(),
-            ebo: Buffer::new(),
-            tbo: Buffer::new(),
-            cbo: None
+            vertex_array: VertexArray::new(),
+            vertex_buffer: Buffer::new(),
+            element_buffer: Buffer::new(),
+            transform_buffer: Buffer::new()
         };
 
-        Model::calc_vertex_tangents(&mut vertices, &mut indices);
+        calc_vertex_tangents(&mut vertices, &mut indices);
         model.setup_model(vertices, indices);
         model.setup_transform_attribute(model_transforms);
 
         model
     }
 
-    pub fn new_bindless(
+    pub fn setup_model(&mut self, vertices: Vec<Vertex>, indices: Vec<u32>) {
+        self.vertex_array.add_vertex_buffer(&mut self.vertex_buffer);
+        self.vertex_array.set_element_buffer(&mut self.element_buffer);
+
+        self.vertex_array.add_attrib(&mut self.vertex_buffer, 3, offset_of!(Vertex, position) as u32, gl::FLOAT);
+        self.vertex_array.add_attrib(&mut self.vertex_buffer, 3, offset_of!(Vertex, normal) as u32, gl::FLOAT);
+        self.vertex_array.add_attrib(&mut self.vertex_buffer, 2, offset_of!(Vertex, tex_coord) as u32, gl::FLOAT);
+        self.vertex_array.add_attrib(&mut self.vertex_buffer, 3, offset_of!(Vertex, tangent) as u32, gl::FLOAT);
+        self.vertex_array.add_attrib(&mut self.vertex_buffer, 3, offset_of!(Vertex, bitangent) as u32, gl::FLOAT);
+
+        self.vertex_buffer.set_data(vertices);
+        self.element_buffer.set_data(indices);
+    }
+    
+    pub fn setup_transform_attribute(&mut self, model_transforms: Vec<Matrix4<f32>>) {
+        self.vertex_array.add_vertex_buffer(&mut self.transform_buffer);
+        self.vertex_array.add_attrib_divisor(&mut self.transform_buffer, 4);
+        self.transform_buffer.set_data_mut(model_transforms);
+    }
+}
+
+// TODO: can simply draw same vertices by providing same offset in each mesh
+// TODO: find a way to make this work with different transforms
+impl ModelTrait for MultiBindModel {
+    fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
+        unsafe {
+            self.vertex_array.bind();
+
+            for mesh in &self.meshes {
+                mesh.set_textures(shader_program)?;
+                self.vertex_array.draw_elements_offset(
+                    mesh.get_count(),
+                    mesh.get_offset(),
+                    self.transform_buffer.len() as i32
+                );
+    
+                // Set back to defaults once configured
+                gl::ActiveTexture(gl::TEXTURE0);
+            }
+
+            gl::BindVertexArray(0);
+        }
+
+        Ok(())
+    }
+}
+
+pub struct BindlessModel {
+    pub meshes: Vec<Mesh>,
+    // TODO: rename these to something more descriptive
+    pub vertex_array: VertexArray,
+    pub vertex_buffer: Buffer<Vertex>,
+    pub element_buffer: Buffer<u32>,
+    pub transform_buffer: Buffer<Matrix4<f32>>,
+    pub command_buffer: Buffer<DrawCommand>
+}
+
+impl BindlessModel {
+    pub fn new(
         mut vertices: Vec<Vertex>,
         mut indices: Vec<u32>,
         model_transforms: Vec<Matrix4<f32>>,
         meshes: Vec<Mesh>
-    ) -> Model {
-        let mut model = Model {
+    ) -> Self {
+        let mut model = Self {
             meshes,
-            vao: VertexArray::new(),
-            vbo: Buffer::new(),
-            ebo: Buffer::new(),
-            tbo: Buffer::new(),
-            cbo: Some(Buffer::new())
+            vertex_array: VertexArray::new(),
+            vertex_buffer: Buffer::new(),
+            element_buffer: Buffer::new(),
+            transform_buffer: Buffer::new(),
+            command_buffer: Buffer::new()
         };
 
         // TODO: generate draw calls and add them
         // TODO: to buffer
 
-        Model::calc_vertex_tangents(&mut vertices, &mut indices);
+        calc_vertex_tangents(&mut vertices, &mut indices);
         model.setup_model(vertices, indices);
         model.setup_transform_attribute(model_transforms);
 
         model
     }
 
+    pub fn setup_model(&mut self, vertices: Vec<Vertex>, indices: Vec<u32>) {
+        self.vertex_array.add_vertex_buffer(&mut self.vertex_buffer);
+        self.vertex_array.set_element_buffer(&mut self.element_buffer);
+
+        self.vertex_array.add_attrib(&mut self.vertex_buffer, 3, offset_of!(Vertex, position) as u32, gl::FLOAT);
+        self.vertex_array.add_attrib(&mut self.vertex_buffer, 3, offset_of!(Vertex, normal) as u32, gl::FLOAT);
+        self.vertex_array.add_attrib(&mut self.vertex_buffer, 2, offset_of!(Vertex, tex_coord) as u32, gl::FLOAT);
+        self.vertex_array.add_attrib(&mut self.vertex_buffer, 3, offset_of!(Vertex, tangent) as u32, gl::FLOAT);
+        self.vertex_array.add_attrib(&mut self.vertex_buffer, 3, offset_of!(Vertex, bitangent) as u32, gl::FLOAT);
+
+        self.vertex_buffer.set_data(vertices);
+        self.element_buffer.set_data(indices);
+    }
+    
+    pub fn setup_transform_attribute(&mut self, model_transforms: Vec<Matrix4<f32>>) {
+        self.vertex_array.add_vertex_buffer(&mut self.transform_buffer);
+        self.vertex_array.add_attrib_divisor(&mut self.transform_buffer, 4);
+        self.transform_buffer.set_data_mut(model_transforms);
+    }
+}
+
+impl ModelTrait for BindlessModel {
     // TODO: work on making this work with textures so there is one draw call
     // TODO: Use bindless textures and ubos to do this in one big draw call
     // TODO: Check if those extensions are supported, if not, just draw
     // TODO: each mesh individually like normal.
     // TODO: https://litasa.github.io/blog/2017/09/04/OpenGL-MultiDrawIndirect-with-Individual-Textures
-    pub fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
-        unsafe {
-            self.vao.bind();
-
-            for mesh in &self.meshes {
-                mesh.set_textures(shader_program)?;
-                self.vao.draw_elements_offset(
-                    mesh.get_count(),
-                    mesh.get_offset(),
-                    self.tbo.len() as i32
-                );
-    
-                // Set back to defaults once configured
-                gl::ActiveTexture(gl::TEXTURE0);
-            }
-
-            gl::BindVertexArray(0);
-        }
-
-        Ok(())
-    }
-
     // Panics if there is no cbo present in the model
-    pub fn draw_bindless(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
+    fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
         unsafe {
-            self.vao.bind();
-            // TODO: make model trait, and create a bindless model so there doesn't need to be this option,
-            // TODO: and there doesn't need to be a check or unwrap every frame
-            let cbo_id = self.cbo.as_ref()
-                .expect("Model should have been initialized with new_bindless!")
-                .get_id();
-
-            gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, cbo_id);
+            self.vertex_array.bind();
+            // TODO: Generic buffer bind function?
+            gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, self.command_buffer.get_id());
 
             for mesh in &self.meshes {
                 mesh.set_textures(shader_program)?;
-                self.vao.draw_elements_offset(
+                self.vertex_array.draw_elements_offset(
                     mesh.get_count(),
                     mesh.get_offset(),
-                    self.tbo.len() as i32
+                    self.transform_buffer.len() as i32
                 );
     
                 // Set back to defaults once configured
@@ -116,83 +175,5 @@ impl Model {
         }
 
         Ok(())
-    }
-
-    pub fn setup_model(&mut self, vertices: Vec<Vertex>, indices: Vec<u32>) {
-        self.vao.add_vertex_buffer(&mut self.vbo);
-        self.vao.set_element_buffer(&mut self.ebo);
-
-        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, position) as u32, gl::FLOAT);
-        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, normal) as u32, gl::FLOAT);
-        self.vao.add_attrib(&mut self.vbo, 2, offset_of!(Vertex, tex_coord) as u32, gl::FLOAT);
-        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, tangent) as u32, gl::FLOAT);
-        self.vao.add_attrib(&mut self.vbo, 3, offset_of!(Vertex, bitangent) as u32, gl::FLOAT);
-
-        self.vbo.set_data(vertices);
-        self.ebo.set_data(indices);
-    }
-    
-    pub fn setup_transform_attribute(&mut self, model_transforms: Vec<Matrix4<f32>>) {
-        self.vao.add_vertex_buffer(&mut self.tbo);
-        self.vao.add_attrib_divisor(&mut self.tbo, 4);
-        self.tbo.set_data_mut(model_transforms);
-    }
-
-    pub fn calc_vertex_tangents(vertices: &mut Vec<Vertex>, indices: &mut Vec<u32>) {
-        for i in 0..(indices.len() / 3) {
-            let index = i * 3;
-
-            let index1 = indices[index] as usize;
-            let index2 = indices[index + 1] as usize;
-            let index3 = indices[index + 2] as usize;
-
-            // Get positions for the vertices that make up the triangle
-            let pos1 = vertices[index1].position;
-            let pos2 = vertices[index2].position;
-            let pos3 = vertices[index3].position;
-
-            // Get corresponding texture coordinates
-            let uv1 = vertices[index1].tex_coord;
-            let uv2 = vertices[index2].tex_coord;
-            let uv3 = vertices[index3].tex_coord;
-
-            // Calculate deltas
-            let edge1 = pos2 - pos1;
-            let edge2 = pos3 - pos1;
-            let mut delta_uv1 = uv2 - uv1;
-            let mut delta_uv2 = uv3 - uv1;
-
-            // Slight correction for angles to be more accurate
-            let dir_correction: bool = (delta_uv2.x * delta_uv1.y - delta_uv2.y * delta_uv1.x) < 0.0;
-            let dir_correction: f32 = if dir_correction { -1.0 } else { 1.0 };
-
-            if delta_uv1.x * delta_uv2.y == delta_uv1.y * delta_uv2.x {
-                delta_uv1 = vec2(0.0, 1.0);
-                delta_uv2 = vec2(1.0, 0.0);
-            }
-
-            // Create tangent and bitangent vectors
-            let mut tangent: Vector3<f32> = Vector3::zero();
-            let mut bitangent: Vector3<f32> = Vector3::zero();
-
-            // Calculate tangent vector
-            tangent.x = dir_correction * (edge2.x * delta_uv1.y - edge1.x * delta_uv2.y);
-            tangent.y = dir_correction * (edge2.y * delta_uv1.y - edge1.y * delta_uv2.y);
-            tangent.z = dir_correction * (edge2.z * delta_uv1.y - edge1.z * delta_uv2.y);
-            
-            // Calculate bitangent vector
-            bitangent.x = dir_correction * ( - edge2.x * delta_uv1.x + edge1.x * delta_uv2.x);
-            bitangent.y = dir_correction * ( - edge2.y * delta_uv1.x + edge1.y * delta_uv2.x);
-            bitangent.z = dir_correction * ( - edge2.z * delta_uv1.x + edge1.z * delta_uv2.x);
-
-            // Set tangent vector to all vertices of the triangle
-            vertices[index1].tangent = tangent;
-            vertices[index2].tangent = tangent;
-            vertices[index3].tangent = tangent;            
-
-            vertices[index1].bitangent = bitangent;
-            vertices[index2].bitangent = bitangent;
-            vertices[index3].bitangent = bitangent;
-        }
     }
 }

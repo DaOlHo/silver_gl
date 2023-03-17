@@ -1,12 +1,12 @@
 use std::rc::Rc;
 use cgmath::{Matrix4, vec3};
-use super::{GlError, Texture, RenderBuffer, Model, create_quad, ShaderProgram, gl};
+use super::{GlError, Texture, RenderBuffer, MultiBindModel, ModelTrait, create_quad, ShaderProgram, gl};
 
 pub struct Framebuffer {
     id: u32,
     textures: Vec<Rc<Texture>>,
     draw_buffers: Vec<gl::types::GLenum>,
-    quad: Model,
+    quad: MultiBindModel, // Uses this since each FB has a separate 1 mesh quad
     width: i32,
     height: i32,
     pub render_buffer: Option<RenderBuffer>
