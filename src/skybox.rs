@@ -1,9 +1,9 @@
-use crate::BindlessModel;
+use crate::MultiBindModel;
 
 use super::{ModelTrait, ShaderProgram, GlError, gl};
 
 pub struct Skybox {
-    pub model: BindlessModel // Only one skybox at a time is presumed to exist
+    pub model: MultiBindModel // Only one skybox at a time is presumed to exist
 }
 
 impl Skybox {

@@ -1,10 +1,12 @@
-use cgmath::{vec2, Matrix4, Vector3, Zero};
+use cgmath::Matrix4;
 use memoffset::offset_of;
 use crate::{Buffer, DrawCommand};
-use super::{ShaderProgram, Mesh, Vertex, GlError, VertexArray, gl};
+use super::{ShaderProgram, Mesh, Vertex, GlError, VertexArray, gl, model_utils::calc_vertex_tangents};
 
 pub trait ModelTrait {
     fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError>;
+    fn get_transform_array_mut(&mut self) -> &mut Buffer<Matrix4<f32>>;
+    fn get_transform_array(&self) -> &Buffer<Matrix4<f32>>;
 }
 
 pub trait ModelCreateTrait {
@@ -13,15 +15,14 @@ pub trait ModelCreateTrait {
 
 pub struct MultiBindModel {
     pub meshes: Vec<Mesh>,
-    // TODO: rename these to something more descriptive
     pub vertex_array: VertexArray,
     pub vertex_buffer: Buffer<Vertex>,
     pub element_buffer: Buffer<u32>,
     pub transform_buffer: Buffer<Matrix4<f32>>,
 }
 
-impl MultiBindModel {
-    pub fn new(
+impl ModelCreateTrait for MultiBindModel {
+    fn new(
         mut vertices: Vec<Vertex>,
         mut indices: Vec<u32>,
         model_transforms: Vec<Matrix4<f32>>,
@@ -41,7 +42,9 @@ impl MultiBindModel {
 
         model
     }
+}
 
+impl MultiBindModel {
     pub fn setup_model(&mut self, vertices: Vec<Vertex>, indices: Vec<u32>) {
         self.vertex_array.add_vertex_buffer(&mut self.vertex_buffer);
         self.vertex_array.set_element_buffer(&mut self.element_buffer);
@@ -87,6 +90,9 @@ impl ModelTrait for MultiBindModel {
 
         Ok(())
     }
+
+    fn get_transform_array_mut(&mut self) -> &mut Buffer<Matrix4<f32>> { &mut self.transform_buffer }
+    fn get_transform_array(&self) -> &Buffer<Matrix4<f32>> { &&self.transform_buffer }
 }
 
 pub struct BindlessModel {
@@ -99,8 +105,8 @@ pub struct BindlessModel {
     pub command_buffer: Buffer<DrawCommand>
 }
 
-impl BindlessModel {
-    pub fn new(
+impl ModelCreateTrait for BindlessModel {
+    fn new(
         mut vertices: Vec<Vertex>,
         mut indices: Vec<u32>,
         model_transforms: Vec<Matrix4<f32>>,
@@ -124,7 +130,9 @@ impl BindlessModel {
 
         model
     }
+}
 
+impl BindlessModel {
     pub fn setup_model(&mut self, vertices: Vec<Vertex>, indices: Vec<u32>) {
         self.vertex_array.add_vertex_buffer(&mut self.vertex_buffer);
         self.vertex_array.set_element_buffer(&mut self.element_buffer);
@@ -176,4 +184,7 @@ impl ModelTrait for BindlessModel {
 
         Ok(())
     }
+
+    fn get_transform_array_mut(&mut self) -> &mut Buffer<Matrix4<f32>> { &mut self.transform_buffer }
+    fn get_transform_array(&self) -> &Buffer<Matrix4<f32>> { &&self.transform_buffer }
 }

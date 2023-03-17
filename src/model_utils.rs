@@ -1,8 +1,8 @@
-use cgmath::{Matrix4, Vector3, Vector2};
-use crate::ModelTrait;
+use cgmath::{Matrix4, Vector3, Vector2, vec2, Zero};
+use crate::{ModelTrait, ModelCreateTrait};
 use super::{Mesh, Vertex};
 
-pub fn create_quad<T: ModelTrait>(model_transforms: Vec<Matrix4<f32>>) -> T {
+pub fn create_quad<T: ModelTrait + ModelCreateTrait>(model_transforms: Vec<Matrix4<f32>>) -> T {
     // Flat panel definition
     let vertices = vec![
         Vertex {
