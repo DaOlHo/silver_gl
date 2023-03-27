@@ -7,6 +7,8 @@ pub trait ModelTrait {
     fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError>;
     fn get_transform_array_mut(&mut self) -> &mut Buffer<Matrix4<f32>>;
     fn get_transform_array(&self) -> &Buffer<Matrix4<f32>>;
+    fn get_meshes_mut(&mut self) -> &mut Vec<Mesh>;
+    fn get_meshes(&self) -> &Vec<Mesh>;
 }
 
 pub trait ModelCreateTrait {
@@ -92,7 +94,9 @@ impl ModelTrait for MultiBindModel {
     }
 
     fn get_transform_array_mut(&mut self) -> &mut Buffer<Matrix4<f32>> { &mut self.transform_buffer }
-    fn get_transform_array(&self) -> &Buffer<Matrix4<f32>> { &&self.transform_buffer }
+    fn get_transform_array(&self) -> &Buffer<Matrix4<f32>> { &self.transform_buffer }
+    fn get_meshes_mut(&mut self) -> &mut Vec<Mesh> { &mut self.meshes }
+    fn get_meshes(&self) -> &Vec<Mesh> { &self.meshes }
 }
 
 pub struct BindlessModel {
@@ -187,4 +191,6 @@ impl ModelTrait for BindlessModel {
 
     fn get_transform_array_mut(&mut self) -> &mut Buffer<Matrix4<f32>> { &mut self.transform_buffer }
     fn get_transform_array(&self) -> &Buffer<Matrix4<f32>> { &&self.transform_buffer }
+    fn get_meshes_mut(&mut self) -> &mut Vec<Mesh> { &mut self.meshes }
+    fn get_meshes(&self) -> &Vec<Mesh> { &self.meshes }
 }
