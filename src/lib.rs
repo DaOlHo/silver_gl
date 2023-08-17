@@ -42,3 +42,5 @@ pub use gl_image::*;
 // TODO: Create documentation using rust's documentation thing (Have GL errors section in docs as well as panics section)
 // TODO: Maybe implement compute shaders to do matrix transforms once each frame but faster than on CPU?
 // TODO: Write errors that suggest a solution as well
+
+// TODO: make it so all textures are just one big array and diff/spec/etc textures have guaranteed pos in engine

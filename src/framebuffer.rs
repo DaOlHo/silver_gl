@@ -114,7 +114,7 @@ impl Framebuffer {
 
     pub fn link_to(&mut self, output: Vec<Rc<Texture>>) {
         for texture in output {
-            self.quad.meshes[0].diffuse_textures.push(texture);
+            self.link_push(texture);
         }
     }
 
@@ -158,10 +158,10 @@ impl Framebuffer {
         }
     }
 
+    // Requires shader program bind
     pub fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
         self.bind();
 
-        shader_program.use_program();
         self.quad.draw(shader_program)?;
 
         Ok(())

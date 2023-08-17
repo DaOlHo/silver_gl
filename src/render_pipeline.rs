@@ -22,10 +22,10 @@ pub trait RenderPipeline {
     fn link_to_rp(&mut self, render_pipeline: &dyn RenderPipeline) -> Result<(), GlError> {
         self.link_to(render_pipeline.get_link()?)
     }
-    fn link_to_fb(&mut self, fb: &mut Framebuffer) -> Result<(), GlError> {
+    fn link_to_fb(&mut self, fb: &Framebuffer) -> Result<(), GlError> {
         self.link_to(fb.get_link())
     }
-    fn link_to_mesh(&mut self, mesh: &mut Mesh) -> Result<(), GlError> {
+    fn link_to_mesh(&mut self, mesh: &Mesh) -> Result<(), GlError> {
         for texture in mesh.diffuse_textures.iter() {
             self.link_push(Rc::clone(&texture))?;
         }
